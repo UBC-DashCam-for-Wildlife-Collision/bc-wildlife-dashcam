@@ -25,4 +25,4 @@ Last updated: May 2026
 - Owner: Aditya
 - Consumer: Both
 - Spec: CSV file with columns: speed_kmh, detection_confidence_mean, detection_confidence_std per class.
-- Deadline: End Week 2, Month 3
+- Deadline: End Week 2, Month 3.
