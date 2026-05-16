@@ -5,7 +5,7 @@ Duration: [how long you worked]
 ### Completed
 - Dataset survey finished for all seven target species across Caltech and iNaturalist
 - Species counts and pull strategy documented in dataset_survey.md
-- iNaturalist API tested and confirmed working (2,313 moose BC observations accessible)
+- iNaturalist API tested and confirmed working (2,313 moose BC observations accessible).
 - MegaDetector v5a installed and validated on 50 moose test images
 - Detection rate on raw iNaturalist images: 57% usable (29/51 above 0.5 confidence)
 - GPU runtime confirmed on Colab (Tesla T4)
