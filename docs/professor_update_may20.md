@@ -46,6 +46,22 @@ Prepared by: Deepansh Sabharwal, Aditya Patel
 On track for Month 1 deliverable: confirmed unified dataset and working hardware bench by end of May.
 
 ## Questions for Supervisor
-- [Add any questions you have for Dr. Johnson]
-- Confirm GPU compute access via UBC ARC for Month 2 training runs
-- Confirm road test permission and any required ethics/liability documentation for Highway 97 drive
+
+1. **UBC ARC Access**
+   We will require GPU compute for model fine-tuning in Month 2. Google Colab has 
+   session time limits and is not suitable for overnight training runs. Could you 
+   submit an ARC resource allocation request on our behalf this week? We need access 
+   to a GPU node (V100 or A100) with sufficient storage quota for the dataset 
+   (~50GB estimated). We want this in place before Month 2 begins.
+
+2. **Highway 97 Road Test**
+   Our Month 3 validation plan includes a test drive on Highway 97 in the Okanagan 
+   corridor with the deployed system running in a vehicle. Does this require any 
+   university ethics documentation, liability waivers, or departmental approval? 
+   We want to identify and complete any required paperwork well in advance.
+
+3. **Publication**
+   We intend to target a conference paper submission based on this project's results. 
+   Venues we are considering include IEEE ITSC and CRV (Canadian Conference on 
+   Computer and Robot Vision). We would value your guidance on the most appropriate 
+   venue and whether you would be willing to co-author.
