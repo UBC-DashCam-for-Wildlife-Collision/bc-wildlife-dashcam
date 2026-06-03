@@ -1,67 +1,62 @@
-# Project Status Update - May 20, 2026
+# Project Status Update - June 3, 2026
 Prepared for: Dr. Thomas Johnson
 Prepared by: Deepansh Sabharwal, Aditya Patel
 
-## Current Status: Month 1, Week 2 - On Track
+## Current Status: Month 1, Week 4 - On Track
+
+---
 
 ## Completed to Date
 
 ### Infrastructure
 - GitHub organization and private repo live (ubco-dashcam/bc-wildlife-dashcam)
 - Branch protection on main, both contributors active
-- Interface contract documented and committed
-- Meeting log maintained
+- Interface contract, GPS interface spec, dataset survey, meeting log documented and committed
+- Pipeline decision tree and data flow diagram drawn and presented May 20
 
 ### Dataset Pipeline (Deepansh)
-- Full dataset survey completed across Caltech Camera Traps and iNaturalist BC
-- Key finding: 3 of 7 target species absent from Caltech; iNaturalist is sole source for elk, moose, bear
-- Key finding: cougar critically underrepresented in BC (477 total); global iNaturalist pull approved
-- iNaturalist API pipeline built and validated
-- MegaDetector v5a installed and validated (57% usable rate on raw iNaturalist images)
-- 500 moose images downloaded and saved, elk download in progress
+- All 7 species downloaded and filtered through MegaDetector v5a
+- Final usable counts: bear 421, cougar 348, coyote 450, deer 479, elk 449, moose 316, raccoon 397 — total 2,860
+- MegaDetector JSON annotations converted to YOLOv8 format locally via custom build script
+- Dataset split 70/20/10 (2001 train / 572 val / 287 test), fixed seed 42 for reproducibility
+- Held-out test set defined and isolated before first training run per supervisor requirement
+- Roboflow dependency removed; full dataset pipeline runs locally from source JSONs
 
-### Hardware and Electrical (Aditya)
-- GPS interface spec documented
-- Power budget calculated
-- Hardware cart built, pending order after this meeting
+### Model Training (Deepansh)
+- YOLOv8n fine-tuned on all 7 species, 100 epochs, T4 GPU, batch 32
+- Results on held-out validation set:
+  - mAP50: 0.823
+  - mAP50-95: 0.638
+  - Precision: 0.797
+  - Recall: 0.767
+- Per-class mAP50-95: bear 0.704, cougar 0.755, coyote 0.660, deer 0.694, elk 0.573, moose 0.588, raccoon 0.492
+- Raccoon and elk identified as weakest classes — recall bleed into background, not cross-class confusion
+- Low-confidence false positive observed (0.4 confidence) — confirms confidence threshold floor required in alert logic
+- Weights saved: best.pt (6.2 MB), run logged to wandb bc-dashcam-yolov8
+- Run artifacts backed up to Google Drive
 
-## Hardware to Be Ordered Today
-- Google Coral USB Accelerator
-- SSD1306 128x64 OLED display
-- Active piezo buzzer
-- RGB LED bar
-- Powered USB 3.0 hub
-- SanDisk/Samsung High Endurance 128GB microSD
-- Weatherproof enclosure + windshield mount
-- USB-C 5V power adapter
+### Hardware (Aditya)
+- All components ordered May 26
+- Pi 5, Hailo AI Kit, Camera Module 3 NoIR arrived
+- Remaining components arriving this week
 
-## Remaining Month 1 Gates
-- Complete species downloads for all 7 classes (this week)
-- Run MegaDetector annotation pipeline on all downloaded images
-- Hardware arrives and bench setup begins (next week)
-- Camera calibration (OpenCV checkerboard)
-- Unified dataset export to YOLOv8 format via Roboflow
+---
 
-## Timeline Assessment
-On track for Month 1 deliverable: confirmed unified dataset and working hardware bench by end of May.
+## Phase Status
 
-## Questions for Supervisor
+| Phase | Exit Criterion | Status |
+|---|---|---|
+| Phase 1 — Data + Documentation | Dataset built, split defined, diagrams approved | Complete pending approval |
+| Phase 2 — Training + Quantization | YOLOv8n fine-tuned, INT8 quantized, mAP acceptable | Training complete, quantization upcoming |
+| Phase 3 — Hardware Deployment | Model on Hailo-8L, warning outputs functional, GPS logging verified | In progress |
+| Phase 4 — Validation | Road test complete, FP/FN documented, GPS log cross-referenced | Upcoming |
 
-1. **UBC ARC Access**
-   We will require GPU compute for model fine-tuning in Month 2. Google Colab has 
-   session time limits and is not suitable for overnight training runs. Could you 
-   submit an ARC resource allocation request on our behalf this week? We need access 
-   to a GPU node (V100 or A100) with sufficient storage quota for the dataset 
-   (~50GB estimated). We want this in place before Month 2 begins.
+---
 
-2. **Highway 97 Road Test**
-   Our Month 3 validation plan includes a test drive on Highway 97 in the Okanagan 
-   corridor with the deployed system running in a vehicle. Does this require any 
-   university ethics documentation, liability waivers, or departmental approval? 
-   We want to identify and complete any required paperwork well in advance.
+## Immediate Next Steps
 
-3. **Publication**
-   We intend to target a conference paper submission based on this project's results. 
-   Venues we are considering include IEEE ITSC and CRV (Canadian Conference on 
-   Computer and Robot Vision). We would value your guidance on the most appropriate 
-   venue and whether you would be willing to co-author.
+- INT8 quantization via Hailo Dataflow Compiler, measure mAP degradation against float32 baseline
+- Confidence threshold calibration on held-out test split, establish per-class alert floors
+- Pi OS flash, HailoRT SDK install, GPIO output wiring (LED, buzzer, OLED)
+- GPS UART wiring and validation (Aditya)
+- Camera calibration via OpenCV checkerboard (Aditya) — hard dependency for distance estimation
