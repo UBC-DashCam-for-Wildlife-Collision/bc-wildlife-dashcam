@@ -1,81 +1,100 @@
-# Dataset Survey - BC Wildlife Dashcam
+# Dataset Survey
 
-Last updated: May 2026
+Last updated: June 25, 2026
 
-## Caltech Camera Traps
+This document surveys available image sources for the 7 target wildlife species and documents the pull strategy, filtering results, and known risks.
 
-Metadata file: caltech_images_20210113.json  
-Total images: 243,100  
-Total annotations: 245,118  
+---
 
-### Target Species Coverage
+## Sources
+
+### Caltech Camera Traps
+
+Metadata file: `caltech_images_20210113.json`
+Total images: 243,100
+Total annotations: 245,118
 
 | Species | Annotations | Notes |
 |---|---|---|
-| deer | 12,196 | Good coverage |
-| coyote | 16,601 | Good coverage |
-| raccoon | 11,390 | Good coverage |
-| mountain_lion | 145 | Severe underrepresentation |
-| elk | 0 | Absent from dataset |
-| moose | 0 | Absent from dataset |
-| bear | 0 | Absent from dataset |
+| Deer | 12,196 | Good coverage |
+| Coyote | 16,601 | Good coverage |
+| Raccoon | 11,390 | Good coverage |
+| Cougar | 145 | Severe underrepresentation |
+| Elk | 0 | Absent from dataset |
+| Moose | 0 | Absent from dataset |
+| Bear | 0 | Absent from dataset |
 
-## iNaturalist - British Columbia
+Three of the seven target species (elk, moose, bear) are entirely absent from Caltech Camera Traps. Cougar coverage is negligible at 145 annotations.
 
-| Species | Observations |
-|---|---|
-| deer | 30,681 |
-| coyote | 3,217 |
-| raccoon | 4,470 |
-| bear | 9,604 |
-| moose | 4,396 |
-| elk | 2,178 |
-| mountain_lion | 332 |
-
-## iNaturalist - Global (mountain lion only)
+### iNaturalist — British Columbia
 
 | Species | Observations |
 |---|---|
-| mountain_lion | 14,770 |
+| Deer | 30,681 |
+| Bear | 9,604 |
+| Raccoon | 4,470 |
+| Moose | 4,396 |
+| Coyote | 3,217 |
+| Elk | 2,178 |
+| Cougar | 332 |
 
-Reason for global pull: BC-only count of 332 is insufficient for fine-tuning. 
-Global observations required for this class only.
+### iNaturalist — Global (cougar only)
 
-## Combined Totals and Risk Assessment
+| Species | Observations |
+|---|---|
+| Cougar | 14,770 |
 
-| Species | Caltech | iNaturalist | Total | Risk |
-|---|---|---|---|---|
-| deer | 12,196 | 30,681 | 42,877 | None |
-| coyote | 16,601 | 3,217 | 19,818 | None |
-| raccoon | 11,390 | 4,470 | 15,860 | None |
-| bear | 0 | 9,604 | 9,604 | Low |
-| moose | 0 | 4,396 | 4,396 | Medium |
-| elk | 0 | 2,178 | 2,178 | Medium |
-| cougar | 145 | 14,770 | 14,915 | Resolved |
+BC-only cougar count of 332 is insufficient for fine-tuning. Global pull approved for this species only. This introduces domain diversity outside BC, which is an accepted tradeoff.
+
+---
 
 ## Pull Strategy
 
-| Class | Source | Strategy |
+| Species | Source | Strategy |
 |---|---|---|
-| deer | Caltech + iNaturalist BC | Cap at 4,000 total |
-| coyote | Caltech + iNaturalist BC | Cap at 4,000 total |
-| raccoon | Caltech + iNaturalist BC | Cap at 4,000 total |
-| bear | iNaturalist BC | All available (~9,604) |
-| moose | iNaturalist BC | All available (~4,396) |
-| elk | iNaturalist BC | All available (~2,178) |
-| cougar | Caltech + iNaturalist global | All available (~14,915) |
+| Deer | Caltech + iNaturalist BC | Cap at 500 initial pull |
+| Coyote | Caltech + iNaturalist BC | Cap at 500 initial pull |
+| Raccoon | Caltech + iNaturalist BC | Cap at 500 initial pull |
+| Bear | iNaturalist BC | Cap at 500 initial pull |
+| Moose | iNaturalist BC | All available |
+| Elk | iNaturalist BC | Cap at 500 initial pull |
+| Cougar | Caltech + iNaturalist global | Cap at 500 initial pull |
 
-## Key Findings
+Deer, coyote, and raccoon are heavily over-represented in the combined source pool. Training caps are required to prevent class imbalance from suppressing learning on rare classes. Target training set per class: 300-500 images for the initial proof-of-concept pull.
 
-1. Three of seven target species (elk, moose, bear) are entirely absent from 
-   Caltech Camera Traps. iNaturalist is the sole source for these classes.
-2. Cougar is the highest-risk class. BC-only sources yield 477 images total. 
-   Global iNaturalist pull resolves this but introduces domain diversity outside BC.
-3. Deer, coyote, and raccoon are over-represented. Training caps required to 
-   prevent class imbalance from suppressing learning on rare classes.
-4. Target training set per class: 2,000-4,000 images. Classes below this 
-   threshold receive augmentation to compensate.
+---
 
-## Google Sheet
+## MegaDetector Filtering Results
 
-[Dataset Survey - BC Dashcam](<[PASTE YOUR SHEET URL HERE](https://docs.google.com/spreadsheets/d/1Y6eoyN-Xk9b4K5EFB5Z_KzXpMCz_iQKWs1BjLjqWQ9k/edit?gid=0#gid=0)>)
+Every downloaded image was run through MegaDetector v5a with a confidence threshold of 0.5. Images below this threshold were discarded.
+
+| Species | Downloaded | Usable (conf >= 0.5) | Usable Rate | Notes |
+|---|---|---|---|---|
+| Deer | 484 | 479 | 99.0% | |
+| Coyote | 473 | 450 | 95.1% | |
+| Elk | 471 | 449 | 95.3% | |
+| Raccoon | 454 | 397 | 87.4% | Manual FP review done |
+| Bear | 437 | 421 | 96.3% | |
+| Cougar | 380 | 348 | 91.6% | Global pull |
+| Moose | 316 | 316 | 63.2% | Lowest usable rate |
+| **Total** | **3,015** | **2,860** | **94.9%** | |
+
+Moose has the lowest usable rate. Raccoon required additional manual false-positive review after MegaDetector filtering.
+
+---
+
+## Known Risks
+
+1. **Domain shift.** The entire dataset is sourced from iNaturalist and Caltech Camera Traps, both of which are camera-trap style imagery (fixed low-angle, IR night, animals close and broadside). A dashcam presents a fundamentally different viewpoint. This was independently flagged by the WiRE Lab at UBC Biology as a genuine risk for model generalization. Supplementary dashcam-perspective data from LILA BC or iWildCam may help mitigate this.
+
+2. **Cougar domain diversity.** The global iNaturalist pull for cougar introduces images from outside BC. The model may learn cougar features from non-BC habitats, which could affect performance on BC road corridors.
+
+3. **Class imbalance.** Even after filtering, moose (316) has roughly 50% fewer usable images than deer (479). Augmentation will partially compensate, but moose and raccoon remain the weakest classes.
+
+---
+
+## External References
+
+- [Dataset Survey Google Sheet](https://docs.google.com/spreadsheets/d/1Y6eoyN-Xk9b4K5EFB5Z_KzXpMCz_iQKWs1BjLjqWQ9k/edit?gid=0#gid=0)
+- LILA BC (lila.science) — recommended by WiRE Lab as supplementary source
+- iWildCam datasets — ship with MegaDetector bounding boxes pre-generated
