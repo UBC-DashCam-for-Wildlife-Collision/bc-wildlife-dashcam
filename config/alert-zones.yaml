@@ -1,0 +1,36 @@
+# Three-tier proximity zone configuration
+# Zone thresholds in metres, scaled by GPS speed at runtime
+
+zones:
+  zone1:
+    label: Log only
+    min_distance_m: 80
+    led: off
+    buzzer: off
+    oled: off
+
+  zone2:
+    label: Caution
+    min_distance_m: 40
+    led:
+      color_rgb: [255, 180, 0]
+      pattern: pulse
+      cycle_ms: 300
+    buzzer:
+      pattern: two-short
+    oled: off
+
+  zone3:
+    label: Danger
+    min_distance_m: 0
+    led:
+      color_rgb: [255, 0, 0]
+      pattern: flash
+      cycle_ms: 100
+    buzzer:
+      pattern: continuous-rapid
+    oled:
+      show_species: true
+      show_distance: true
+
+# All detections are logged to SD card regardless of zone

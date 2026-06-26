@@ -1,0 +1,29 @@
+# Training and inference (Colab / workstation)
+ultralytics>=8.2.0
+wandb>=0.17.0
+pyinaturalist>=0.19.0
+
+# MegaDetector filtering
+# Install separately: git clone + pip install -e MegaDetector/
+# Requires: humanfriendly, torch, torchvision
+
+# Image processing
+opencv-python>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+
+# Raspberry Pi deployment (install on Pi 5 only)
+# hailort  # installed via apt on Pi 5, not pip
+# picamera2  # pre-installed on Raspberry Pi OS
+# rpi_ws281x  # WS2812B LED control
+# adafruit-circuitpython-ssd1306  # OLED display
+# RPi.GPIO  # buzzer and GPIO control
+# gps3  # gpsd client for u-blox GPS
+
+# Roboflow (dataset management)
+roboflow>=1.1.0
+
+# General
+requests>=2.31.0
+tqdm>=4.65.0

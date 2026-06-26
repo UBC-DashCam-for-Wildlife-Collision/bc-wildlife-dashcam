@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model weights (too large for git, stored on Drive/SSD)
+*.pt
+*.onnx
+*.hef
+*.tflite
+
+# Data (stored on T7 SSD and Google Drive, not in repo)
+data/
+detections/
+metadata/
+yolo_dataset/
+yolo_dataset.zip
+
+# Colab artifacts
+MegaDetector/
+wandb/
+runs/
+
+# Secrets
+.env
+*.key
+.netrc

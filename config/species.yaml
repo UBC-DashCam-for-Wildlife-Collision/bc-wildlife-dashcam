@@ -1,0 +1,46 @@
+# Species configuration for BC Wildlife-Aware Dashcam
+# Shoulder heights used for thin-lens distance estimation
+
+classes:
+  - label: bear
+    taxon: Ursus americanus
+    shoulder_height_m: 0.90
+    risk_tier: high
+
+  - label: cougar
+    taxon: Puma concolor
+    shoulder_height_m: 0.70
+    risk_tier: high
+
+  - label: coyote
+    taxon: Canis latrans
+    shoulder_height_m: 0.60
+    risk_tier: medium
+
+  - label: deer
+    taxon: Odocoileus hemionus
+    shoulder_height_m: 1.00
+    risk_tier: high
+
+  - label: elk
+    taxon: Cervus canadensis
+    shoulder_height_m: 1.50
+    risk_tier: high
+
+  - label: moose
+    taxon: Alces alces
+    shoulder_height_m: 1.80
+    risk_tier: critical
+
+  - label: raccoon
+    taxon: Procyon lotor
+    shoulder_height_m: 0.30
+    risk_tier: low
+
+# Risk tiers determine alert priority when multiple species detected
+# critical > high > medium > low
+risk_priority:
+  - critical
+  - high
+  - medium
+  - low

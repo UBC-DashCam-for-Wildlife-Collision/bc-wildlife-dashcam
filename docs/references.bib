@@ -1,0 +1,237 @@
+% ============================================================
+% BC Wildlife-Aware Dashcam — Reference Bibliography
+% ============================================================
+
+% --- Model Architecture ---
+
+@software{jocher2023yolov8,
+  author  = {Glenn Jocher and Ayush Chaurasia and Jing Qiu},
+  title   = {Ultralytics {YOLOv8}},
+  year    = {2023},
+  url     = {https://github.com/ultralytics/ultralytics},
+  note    = {Software}
+}
+
+@inproceedings{redmon2016yolo,
+  author    = {Joseph Redmon and Santosh Divvala and Ross Girshick and Ali Farhadi},
+  title     = {You Only Look Once: Unified, Real-Time Object Detection},
+  booktitle = {CVPR},
+  year      = {2016},
+  url       = {https://arxiv.org/abs/1506.02640}
+}
+
+@software{jocher2020yolov5,
+  author  = {Glenn Jocher},
+  title   = {Ultralytics {YOLOv5}},
+  year    = {2020},
+  url     = {https://github.com/ultralytics/yolov5},
+  note    = {Software}
+}
+
+@article{howard2017mobilenets,
+  author  = {Andrew G. Howard and Menglong Zhu and Bo Chen and Dmitry Kalenichenko and Weijun Wang and Tobias Weyand and Marco Andreetto and Hartwig Adam},
+  title   = {{MobileNets}: Efficient Convolutional Neural Networks for Mobile Vision Applications},
+  journal = {arXiv preprint arXiv:1704.04861},
+  year    = {2017},
+  url     = {https://arxiv.org/abs/1704.04861}
+}
+
+@inproceedings{tan2020efficientdet,
+  author    = {Mingxing Tan and Ruoming Pang and Quoc V. Le},
+  title     = {{EfficientDet}: Scalable and Efficient Object Detection},
+  booktitle = {CVPR},
+  year      = {2020},
+  url       = {https://arxiv.org/abs/1911.09070}
+}
+
+% --- Quantization ---
+
+@inproceedings{jacob2018quantization,
+  author    = {Benoit Jacob and Skirmantas Kligys and Bo Chen and Menglong Zhu and Matthew Tang and Andrew Howard and Hartwig Adam and Dmitry Kalenichenko},
+  title     = {Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference},
+  booktitle = {CVPR},
+  year      = {2018}
+}
+
+@article{nagel2021quantization,
+  author  = {Markus Nagel and Marios Fournarakis and Rana Ali Amjad and Yelysei Bondarenko and Mart van Baalen and Tijmen Blankevoort},
+  title   = {A White Paper on Neural Network Quantization},
+  journal = {arXiv preprint arXiv:2106.08295},
+  year    = {2021}
+}
+
+@inproceedings{banner2019posttraining,
+  author    = {Ron Banner and Yury Nahshan and Daniel Soudry},
+  title     = {Post Training 4-bit Quantization of Convolutional Networks for Rapid-Deployment},
+  booktitle = {NeurIPS},
+  year      = {2019}
+}
+
+@article{krishnamoorthi2018quantization,
+  author  = {Raghuraman Krishnamoorthi},
+  title   = {Quantizing Deep Convolutional Networks for Efficient Inference: A Whitepaper},
+  journal = {arXiv preprint arXiv:1806.08342},
+  year    = {2018}
+}
+
+% --- Wildlife / Camera Trap ---
+
+@inproceedings{beery2018recognition,
+  author    = {Sara Beery and Grant {Van Horn} and Pietro Perona},
+  title     = {Recognition in Terra Incognita},
+  booktitle = {ECCV},
+  year      = {2018},
+  note      = {Domain shift across camera trap locations}
+}
+
+@article{beery2019megadetector,
+  author  = {Sara Beery and Dan Morris and Siyu Yang},
+  title   = {Efficient Pipeline for Camera Trap Image Review},
+  journal = {arXiv preprint arXiv:1907.06772},
+  year    = {2019},
+  note    = {MegaDetector}
+}
+
+@article{norouzzadeh2018pnas,
+  author  = {Mohammad Sadegh Norouzzadeh and Anh Nguyen and Margaret Kosmala and Alexandra Swanson and Meredith S. Palmer and Craig Packer and Jeff Clune},
+  title   = {Automatically Identifying, Counting, and Describing Wild Animals in Camera-Trap Images with Deep Learning},
+  journal = {Proceedings of the National Academy of Sciences},
+  year    = {2018}
+}
+
+@article{tabak2019machine,
+  author  = {Michael A. Tabak and Mohammad S. Norouzzadeh and David W. Wolfson and Steven J. Sweeney and Kurt C. VerCauteren and Nathan P. Snow and Joseph M. Halseth and Paul A. Di Salvo and Jesse S. Lewis and Michael D. White and Ben Teton and James C. Beasley and Peter E. Schlichting and Raoul K. Boughton and Bethany Wight and Eric S. Newkirk and Jacob S. Ivan and Eric A. Odell and Ryan K. Brook and Paul M. Lukacs and Anna K. Moeller and Elizabeth G. Mandeville and Jeff Clune and Ryan S. Miller},
+  title   = {Machine Learning to Classify Animal Species in Camera Trap Images: Applications in Ecology},
+  journal = {Methods in Ecology and Evolution},
+  year    = {2019}
+}
+
+@article{schneider2020three,
+  author  = {Stefan Schneider and Saul Greenberg and Graham W. Taylor and Stefan C. Kremer},
+  title   = {Three Critical Factors Affecting Automated Image Species Recognition Performance for Camera Traps},
+  journal = {Ecology and Evolution},
+  year    = {2020}
+}
+
+% --- Monocular Distance / TTC ---
+
+@article{fpttc2024,
+  title   = {{FP-TTC}: Frame-Pair Based Monocular Time-to-Contact Estimation},
+  journal = {IEEE Transactions on Circuits and Systems for Video Technology},
+  year    = {2024},
+  note    = {Primary distance estimation method}
+}
+
+@inproceedings{badki2021binary,
+  author    = {Abhishek Badki and Orazio Gallo and Jan Kautz and Pradeep Sen},
+  title     = {Binary {TTC}: A Temporal Geofence for Autonomous Navigation},
+  booktitle = {CVPR},
+  year      = {2021}
+}
+
+@inproceedings{godard2019monodepth,
+  author    = {Cl\'{e}ment Godard and Oisin Mac Aodha and Michael Firman and Gabriel J. Brostow},
+  title     = {Digging Into Self-Supervised Monocular Depth Estimation},
+  booktitle = {ICCV},
+  year      = {2019}
+}
+
+@inproceedings{eigen2014depth,
+  author    = {David Eigen and Christian Puhrsch and Rob Fergus},
+  title     = {Depth Map Prediction from a Single Image Using a Multi-Scale Deep Network},
+  booktitle = {NeurIPS},
+  year      = {2014}
+}
+
+% --- ADAS / Collision Avoidance ---
+
+@article{misman2021adas,
+  author  = {Muhammad Firdaus Misman and others},
+  title   = {Advanced Driver Assistance Systems: A Review},
+  journal = {IEEE Access},
+  year    = {2021}
+}
+
+@article{huijser2007wildlife,
+  author  = {Marcel P. Huijser and Paul T. McGowen and Jonathan Fuller and Amanda Hardy and Angela Kociolek and Anthony P. Clevenger and Dave Smith and Robert Ament},
+  title   = {Wildlife-Vehicle Collision Reduction Study},
+  journal = {Journal of Applied Ecology},
+  year    = {2007}
+}
+
+@inproceedings{basak2020collision,
+  author    = {Shudipto Basak and others},
+  title     = {Animal Detection and Collision Avoidance System},
+  booktitle = {IEEE ICCIT},
+  year      = {2020}
+}
+
+@article{wall2014wildlife,
+  author  = {J. Wall and others},
+  title   = {Novel Approaches to Wildlife Collision Mitigation},
+  journal = {Wildlife Research},
+  year    = {2014}
+}
+
+% --- Multimodal Alerts ---
+
+@article{lacherez2011auditory,
+  author  = {Philippe Lacherez and others},
+  title   = {Auditory and Visual Warnings},
+  journal = {Neuropsychologia},
+  year    = {2011}
+}
+
+@article{ho2002ergonomics,
+  author  = {Cristy Ho and others},
+  title   = {Multisensory Warning Signals},
+  journal = {Ergonomics},
+  year    = {2002}
+}
+
+@techreport{ntsb2015sir1501,
+  author      = {{National Transportation Safety Board}},
+  title       = {Collision Avoidance Systems},
+  institution = {NTSB},
+  number      = {SIR-1501},
+  year        = {2015}
+}
+
+% --- Pedestrian Sub-Classification ---
+
+@article{dollar2012pedestrian,
+  author  = {Piotr Doll\'{a}r and Christian Wojek and Bernt Schiele and Pietro Perona},
+  title   = {Pedestrian Detection: An Evaluation of the State of the Art},
+  journal = {IEEE TPAMI},
+  year    = {2012}
+}
+
+@article{ince2020childadult,
+  author  = {Ince and Park},
+  title   = {Head-to-Body Ratio Based Child-Adult Classification},
+  journal = {IJCCE},
+  year    = {2020}
+}
+
+@inproceedings{zhang2016pedestrian,
+  author    = {Shanshan Zhang and Rodrigo Benenson and Bernt Schiele},
+  title     = {Filtered Channel Features for Pedestrian Detection},
+  booktitle = {ECCV},
+  year      = {2016}
+}
+
+% --- Data Sources ---
+
+@misc{icbc2026wildlife,
+  author = {{Insurance Corporation of British Columbia}},
+  title  = {Wildlife Collision Statistics},
+  year   = {2026},
+  note   = {12,519 wildlife crashes in BC in 2024, 24 fatal}
+}
+
+@article{stoppingdistance2022,
+  title   = {Stopping Distance Analysis},
+  journal = {PMC},
+  year    = {2022},
+  note    = {71m at 100 km/h on dry asphalt}
+}

@@ -38,16 +38,30 @@ Approach vector filtering ensures alerts only trigger on animals moving toward t
 
 See [docs/development_phases.md](docs/development_phases.md) for the full phase breakdown with exit criteria.
 
-## Documentation
+## Repository Structure
 
-| Document | Description |
-|---|---|
-| [docs/development_phases.md](docs/development_phases.md) | Five development phases with exit criteria |
-| [docs/dataset_survey.md](docs/dataset_survey.md) | Species coverage, source analysis, pull strategy |
-| [docs/interface_contract.md](docs/interface_contract.md) | Hardware/software interface definitions between team members |
-| [docs/gps_interface_spec.md](docs/gps_interface_spec.md) | u-blox NEO-M8N UART config, NMEA parsing, output format |
-| [docs/meeting_log.md](docs/meeting_log.md) | Work session log with decisions and blockers |
-| [docs/professor_update_june03.md](docs/professor_update_june03.md) | Status report prepared for Dr. Johnson |
+```
+bc-dashcam/
+  config/
+    alert-zones.yaml        # Three-tier proximity zone definitions
+    species.yaml            # Species classes, shoulder heights, risk tiers
+  docs/
+    dataset_survey.md       # Species coverage, source analysis, pull strategy
+    development_phases.md   # Five phases with exit criteria
+    gps_interface_spec.md   # u-blox NEO-M8N UART config, NMEA parsing
+    interface_contract.md   # Hardware/software interface definitions
+    meeting_log.md          # Work session log with decisions and blockers
+    professor_update_june03.md  # Status report for Dr. Johnson
+    references.bib          # Full citation bibliography
+  notebooks/
+    01-environment-check.ipynb     # GPU and dependency verification
+    02-inaturalist-download.ipynb  # Species image download pipeline
+    03-megadetector-filtering.ipynb  # MegaDetector v5a bbox annotation
+    04-yolov8-training.ipynb       # YOLOv8n fine-tuning on 7 classes
+  src/                      # Deployment source code (Phase 2+)
+  requirements.txt          # Python dependencies
+  LICENSE                   # MIT
+```
 
 ## Team
 
