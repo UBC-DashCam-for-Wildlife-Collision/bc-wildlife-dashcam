@@ -93,6 +93,34 @@ Moose has the lowest usable rate. Raccoon required additional manual false-posit
 
 ---
 
+## Dataset Expansion Plan
+
+The initial pull capped every class at 500 images, yielding 2,860 usable. This
+is thin for a 7-class detector, and moose (316) and the other weak classes drag
+down mAP. Expansion is planned in three tiers, by value:
+
+1. **Raise the iNaturalist cap (easy, do first).** iNaturalist BC has far more
+   than 500 available for every class except cougar. Re-running the download
+   with higher caps — weak classes (moose, elk, raccoon, cougar) at ~1,000,
+   strong classes at ~750 — roughly doubles the set for near-zero effort. The
+   download resumes where it left off, so only new images are fetched. This
+   adds volume but stays camera-trap style, so it does not address domain shift.
+
+2. **LILA BC and iWildCam (moderate).** Standardized camera-trap datasets,
+   MegaDetector boxes pre-generated. More volume and more location diversity,
+   but still camera-trap viewpoint.
+
+3. **Road / dashcam-perspective footage (highest value).** The one addition
+   that actually addresses the domain shift the WiRE Lab flagged. Sources: our
+   own collection drives (a short one can happen before the formal Week 5 road
+   test), plus public dashcam wildlife video. Frames are extracted with
+   `scripts/extract-frames.py`, auto-annotated with MegaDetector, and folded in
+   the same way as the iNaturalist images.
+
+**Bottom line:** iNaturalist volume is trivial to get but has diminishing
+returns for a road detector. The scarce, valuable data is dashcam-perspective.
+Prioritize tier 3 for model quality; use tiers 1-2 to lift the weak classes.
+
 ## External References
 
 - [Dataset Survey Google Sheet](https://docs.google.com/spreadsheets/d/1Y6eoyN-Xk9b4K5EFB5Z_KzXpMCz_iQKWs1BjLjqWQ9k/edit?gid=0#gid=0)

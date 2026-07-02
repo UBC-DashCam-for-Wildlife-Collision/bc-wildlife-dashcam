@@ -58,6 +58,11 @@ bc-dashcam/
     02-inaturalist-download.ipynb  # Species image download pipeline
     03-megadetector-filtering.ipynb  # MegaDetector v5a bbox annotation
     04-yolov8-training.ipynb       # YOLOv8n fine-tuning on 7 classes
+  scripts/
+    build-yolo-dataset.py   # MegaDetector JSON -> YOLOv8 dataset + split
+    sort-by-confidence.py   # Sort a species into usable/rejected by conf
+    extract-frames.py       # Road/dashcam video -> frames (domain-matched data)
+    upload-annotations.py   # Roboflow upload (legacy, superseded)
   src/                      # Deployment source code (Phase 2+)
   requirements.txt          # Python dependencies
   LICENSE                   # MIT
