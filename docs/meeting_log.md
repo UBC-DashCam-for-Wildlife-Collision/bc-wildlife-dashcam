@@ -81,7 +81,7 @@
 
 ## June 3, 2026 — Status Report Submitted
 
-**Submitted to:** Dr. Johnson (written report, see `professor_update_june03.md`)
+**Submitted to:** Dr. Johnson (written status report)
 
 Summary: Dataset pipeline complete (2,860 usable images across 7 species). Initial YOLOv8n training run completed (mAP50: 0.823, mAP50-95: 0.638). Hardware ordered and arriving. Roboflow dependency removed; full pipeline runs locally.
 

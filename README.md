@@ -51,8 +51,8 @@ bc-dashcam/
     gps_interface_spec.md   # u-blox NEO-M8N UART config, NMEA parsing
     interface_contract.md   # Hardware/software interface definitions
     meeting_log.md          # Work session log with decisions and blockers
-    professor_update_june03.md  # Status report for Dr. Johnson
     references.bib          # Full citation bibliography
+    bc-dashcam-project-design.pdf  # Simplified project design (plain-language)
   notebooks/
     01-environment-check.ipynb     # GPU and dependency verification
     02-inaturalist-download.ipynb  # Species image download pipeline
@@ -62,7 +62,6 @@ bc-dashcam/
     build-yolo-dataset.py   # MegaDetector JSON -> YOLOv8 dataset + split
     sort-by-confidence.py   # Sort a species into usable/rejected by conf
     extract-frames.py       # Road/dashcam video -> frames (domain-matched data)
-    upload-annotations.py   # Roboflow upload (legacy, superseded)
   src/                      # Deployment source code (Phase 2+)
   requirements.txt          # Python dependencies
   LICENSE                   # MIT

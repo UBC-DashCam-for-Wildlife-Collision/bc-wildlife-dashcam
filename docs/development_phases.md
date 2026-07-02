@@ -21,7 +21,7 @@
 - Pipeline decision tree diagram drawn and presented to Dr. Johnson
 - Data flow diagram drawn and presented to Dr. Johnson
 
-**Status as of June 25, 2026:** Mostly complete. All 7 species downloaded and filtered (3,015 images, 2,860 usable). Uploaded to Roboflow (3,012 images, 2,544 bounding boxes). Interface contract, GPS spec, dataset survey, and diagrams all done. One blocking issue remains: Roboflow annotations display "?" placeholder labels instead of species class names. This must be debugged before generating the dataset version.
+**Status as of July 2, 2026:** Complete. All 7 species downloaded and filtered (3,015 images, 2,860 usable). Dataset built locally into a 70/20/10 YOLOv8 split and trained (YOLOv8n, mAP50 0.823). Interface contract, GPS spec, dataset survey, and diagrams all done. Roboflow was dropped in favour of the local build, which removes the earlier class-label blocker entirely.
 
 **What was completed in Phase 1:**
 
@@ -29,17 +29,16 @@
 
 2. **MegaDetector filtering.** Every downloaded image was run through MegaDetector v5a. Only images with a detection confidence >= 0.5 were kept. This removed blurry, occluded, and empty images automatically. Raccoon required additional manual false-positive review.
 
-3. **Roboflow upload.** All 7 species uploaded in batches via the Roboflow Python API. Bounding box annotations were uploaded from the MegaDetector detection JSONs using a custom script (`upload_annotations.py`) that selects the highest-confidence detection per image.
+3. **Dataset assembly.** Roboflow was initially trialled for annotation hosting, but the dataset is now built entirely locally via `scripts/build-yolo-dataset.py`, which reads the MegaDetector detection JSONs, keeps the highest-confidence detection per image, converts to YOLO format, and writes the train/valid/test split. Roboflow has been dropped from the pipeline.
 
 4. **Documentation.** Dataset survey, interface contract, GPS interface spec, and meeting log all committed to the repo. Pipeline decision tree and data flow diagrams drawn on iPad and presented to Dr. Johnson at the May 20 meeting.
 
 5. **External outreach.** Aditya contacted Dr. Ford's WiRE Lab (UBC Biology) regarding camera trap data sharing and validation footage. The WiRE Lab flagged a critical domain-shift risk: camera-trap imagery (fixed low-angle, IR night, broadside animals) will likely underperform when the model encounters real dashcam footage. This is now a documented limitation.
 
-**What remains before Phase 1 can be fully closed:**
-- Debug the Roboflow class-label "?" issue (likely need to pre-create class names in the Roboflow project before uploading annotations)
-- Verify annotations visually on a sample of images per species
-- Generate the dataset version with 70/20/10 split and augmentation
-- Export in YOLOv8 format
+**Phase 1 is closed.** The dataset is built, split, and trained on. Dataset
+expansion (raising per-species caps, adding road-perspective footage) continues
+in parallel with later phases but does not block progress. See
+[dataset_survey.md](dataset_survey.md) for the expansion plan.
 
 ---
 
