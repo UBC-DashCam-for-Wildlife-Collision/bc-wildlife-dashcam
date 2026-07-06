@@ -2,6 +2,68 @@
 
 ---
 
+## July 5, 2026 — Work Session
+
+**Present:** Deepansh (solo, with Claude Code on the Pi)
+**Focus:** Phase 2 hardware bench milestone + software groundwork while camera/GPS are in transit
+
+### Completed
+- Pi 5 + Hailo-8L bench verified end-to-end: `hailortcli scan`/`fw-control identify`
+  confirm the NPU at `0001:01:00.0`; ran the stock `hailo-rpi5-examples`
+  detection demo (YOLOv8s) on the bundled sample video with a live display
+  window, bounding boxes, and tracking IDs.
+- Found and fixed a real bug along the way: `hailo-apps-infra`'s bundled C++
+  postprocess source doesn't compile against the installed tappas-core 5.1.0
+  (`HailoTensor::vstream_info()` was removed), which segfaulted every basic
+  pipeline. Fixed by symlinking tappas-core's own prebuilt equivalent
+  (`libyolo_hailortpp_post.so`) into the path the pipeline expects. Confirmed
+  via `hailortcli monitor` that the Hailo-8L NPU (not the CPU) is doing the
+  inference: device utilization 43-50%, ~30fps sustained, 0% frame drops.
+- Enabled I2C on the Pi (`raspi-config nonint do_i2c 0`) ahead of wiring the
+  SSD1306 OLED — takes effect after a reboot, not yet rebooted.
+- Since the camera (with Aditya) and GPS module (still being ordered) are the
+  only two blockers, used today to build everything in `src/` that doesn't
+  need either: config loaders, thin-lens + TTC distance estimation with
+  conservative fusion, three-tier zone classification, the approach-vector
+  filter, highest-risk-only alert selection, a GPRMC NMEA parser (built and
+  tested purely from the example sentence in `gps_interface_spec.md` — no
+  physical GPS needed for the parsing logic itself), the JSONL detection
+  logger, and driver code for the LED bar / OLED / buzzer (all three are
+  in-hand hardware, just not yet wired to the Pi — I2C was still disabled
+  and no devices were detected on the bus at the start of today).
+- All of the above lives behind a `simulate=True` flag on the hardware
+  drivers so the zone-to-output logic is fully unit tested (38 tests
+  passing) without any hardware attached; the same code path runs for real
+  once things are wired. Added `scripts/test_led_bar.py`,
+  `scripts/test_oled.py`, `scripts/test_buzzer.py` as the physical smoke
+  tests for whenever the wiring happens (matches the Phase 2 kickoff
+  verification steps: amber pulse 0.3s / red flash 0.1s, OLED text render,
+  two-short / continuous-rapid buzzer patterns).
+- Added `requirements-pi.txt` (RPi.GPIO, neopixel/blinka incl. the Pi5-specific
+  neopixel driver, ssd1306, pyserial, pytest) and a `venv` at the repo root
+  for Pi-side deployment code, separate from the training-machine
+  `requirements.txt`.
+
+### Not done / still blocked
+- LED bar / OLED / buzzer are not physically wired yet, so
+  `scripts/test_*.py` haven't been run for real — that's the next hands-on
+  step once there's time to breadboard them (doesn't need Aditya or new
+  parts, just bench time).
+- Camera and GPS integration untouched, as expected — waiting on parts
+  (camera arriving ~Jul 8 with Aditya; GPS still being ordered).
+- Buzzer GPIO pin in `src/alerts/buzzer.py` is a placeholder (17) — not yet
+  confirmed against actual wiring since nothing's been wired.
+
+### Next
+- Wire up LED bar / OLED / buzzer on the bench and run the three hardware
+  smoke test scripts; reboot to activate I2C first.
+- Once camera arrives: `rpicam-hello`, then live feed through the Hailo demo
+  pipeline (Phase 2 kickoff steps 9-10).
+- Start the INT8 quantization path for `best.pt` (Phase 3) — needs a
+  32GB-RAM Colab session, not blocked by any missing hardware.
+
+---
+
 ## May 15, 2026 — Work Session
 
 **Present:** Deepansh (solo)

@@ -60,6 +60,27 @@ in parallel with later phases but does not block progress. See
 
 **Status as of June 25, 2026:** Not started. Begins June 26. Camera is with Aditya (pickup this weekend). GPS module not yet acquired.
 
+**Status as of July 5, 2026:** In progress. Pi 5 + Hailo-8L bench milestone
+hit: `hailortcli fw-control identify` confirms the NPU, PCIe Gen 3 enabled,
+and the stock Hailo YOLOv8 demo runs end-to-end on the bundled sample video
+(fixed a tappas-core 5.1.0 postprocess build incompatibility along the way;
+`hailortcli monitor` confirms the NPU, not the CPU, does the inference at
+~30fps / 0% drop). I2C enabled for the OLED, pending a reboot. Camera
+(Module 3 NoIR) and GPS module still not attached — camera arriving ~Jul 8
+with Aditya, GPS still being ordered. LED bar, OLED, and buzzer are in hand
+but not yet physically wired.
+
+While waiting on camera/GPS, used the day to build and fully unit-test
+(38 tests) the software this phase's remaining hardware steps will exercise:
+`src/config.py`, `src/distance.py`, `src/zones.py`, `src/approach_filter.py`,
+`src/risk_selector.py`, `src/gps_parser.py`, `src/detection_logger.py`, and
+`src/alerts/` (LED bar, OLED, buzzer drivers + controller), plus
+`scripts/test_led_bar.py` / `test_oled.py` / `test_buzzer.py` as the actual
+hardware smoke tests once wired. See docs/meeting_log.md, July 5 2026 entry,
+for the full writeup. None of the Phase 2 exit criteria that require
+physical hardware (LED/OLED/buzzer bench tests, camera streaming, camera
+calibration) are met yet — those still need real wiring/parts, not just code.
+
 ---
 
 ## Phase 3 — Training and Quantization

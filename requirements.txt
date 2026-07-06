@@ -13,13 +13,12 @@ Pillow>=10.0.0
 numpy>=1.24.0
 matplotlib>=3.7.0
 
-# Raspberry Pi deployment (install on Pi 5 only)
-# hailort  # installed via apt on Pi 5, not pip
-# picamera2  # pre-installed on Raspberry Pi OS
-# rpi_ws281x  # WS2812B LED control
-# adafruit-circuitpython-ssd1306  # OLED display
-# RPi.GPIO  # buzzer and GPIO control
-# gps3  # gpsd client for u-blox GPS
+# Raspberry Pi deployment (install on Pi 5 only, in venv --system-site-packages)
+# hailort      # installed via apt on Pi 5, not pip
+# picamera2    # pre-installed on Raspberry Pi OS
+# See requirements-pi.txt for the actual pinned deployment dependency list
+# (RPi.GPIO, neopixel/blinka, ssd1306, pyserial, pytest) -- installed and
+# verified working as of Jul 5, 2026.
 
 # Roboflow (dataset management)
 roboflow>=1.1.0

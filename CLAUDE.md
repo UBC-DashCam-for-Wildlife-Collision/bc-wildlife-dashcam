@@ -122,9 +122,22 @@ SSD dataset (2,860 imgs) ─► train (Colab, GPU) ─► best.pt ─► quantis
 - **Phase 2 (hardware bench): IN PROGRESS — big milestone hit today.** Pi 5
   flashed with Raspberry Pi OS **Trixie** (64-bit), `hailo-all` installed, and the
   **Hailo-8L NPU verified working** (`hailortcli scan` finds it at `0001:01:00.0`,
-  `fw-control identify` prints board info, PCIe Gen 3 enabled). Running the stock
-  detection demo on a bundled sample video to confirm the full inference pipeline.
-- Camera and GPS not yet attached (arriving by Jul 8).
+  `fw-control identify` prints board info, PCIe Gen 3 enabled). Stock
+  `hailo-rpi5-examples` detection demo run end-to-end on the bundled sample
+  video — live window, bounding boxes, tracking IDs, ~30fps at 0% drop,
+  confirmed via `hailortcli monitor` that the NPU (not CPU) does the
+  inference. Along the way, fixed a real bug: the bundled C++ postprocess
+  source doesn't compile against tappas-core 5.1.0 (`vstream_info()` was
+  removed); fixed by symlinking tappas-core's own prebuilt equivalent.
+  I2C enabled for the OLED (pending reboot).
+- Camera and GPS not yet attached (arriving by Jul 8). While waiting on
+  them, built and unit-tested (38 passing tests) all of `src/` that doesn't
+  need either: config loaders, distance estimation (thin-lens + TTC fusion),
+  zone classification, approach-vector filter, highest-risk selector, GPS
+  NMEA parser, JSONL detection logger, and LED/OLED/buzzer alert drivers
+  (those three are in hand but not yet physically wired — `simulate=True`
+  mode lets the zone-to-output logic run and be tested without hardware).
+  See `docs/meeting_log.md` (Jul 5 2026 entry) for the full writeup.
 
 ## 9. Development phases
 
@@ -217,9 +230,14 @@ src/        deployment code (Phase 2+; currently a placeholder)
   in `src/`: camera → Hailo inference → distance → zones → alerts → GPS logging.
 - You do **not** need the dataset here. Only the finished `.hef` model ever lands
   on the Pi.
-- Immediate task at time of writing: run the `hailo-rpi5-examples` detection demo
-  on the bundled sample video (no camera yet) to confirm the NPU inference
-  pipeline end-to-end.
+- The non-hardware-dependent half of `src/` is done (config, distance, zones,
+  approach filter, risk selector, GPS parser, detection logger, alert
+  drivers in `simulate` mode) — see `docs/meeting_log.md` Jul 5 2026 entry.
+  Immediate remaining tasks: (1) physically wire LED bar/OLED/buzzer and run
+  `scripts/test_{led_bar,oled,buzzer}.py` for real, (2) once the camera
+  arrives, wire the Hailo `hailonet`/tracker detection metadata into
+  `src/approach_filter.py` + `src/risk_selector.py` + `src/zones.py` to
+  replace the stock `basic_pipelines/detection.py` callback.
 - Hardware facts: Hailo-8L at `0001:01:00.0`, PCIe Gen 3, `hailo-all` installed.
 - GPIO plan: WS2812B LED bar on GPIO 18; SSD1306 OLED on I2C; piezo buzzer on
   GPIO; u-blox GPS over UART (RX = GPIO 15), 3.3 V — **never 5 V**.

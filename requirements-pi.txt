@@ -1,0 +1,30 @@
+# Raspberry Pi 5 deployment dependencies (src/, scripts/).
+# Install into a system-site-packages venv so hailort/picamera2 (apt-installed)
+# remain visible:
+#   python3 -m venv --system-site-packages venv
+#   source venv/bin/activate
+#   pip install -r requirements-pi.txt
+#
+# Verified installed and importable on the Pi 5 bench as of Jul 5, 2026.
+# hailort and picamera2 are installed via apt (hailo-all), not listed here.
+
+PyYAML>=6.0
+
+# WS2812B LED bar (GPIO 18) -- Adafruit's CircuitPython neopixel API, backed
+# by the Pi5-specific driver since the classic rpi_ws281x PWM/DMA approach
+# doesn't work on the RP1 I/O chip.
+adafruit-circuitpython-neopixel>=6.4.2
+Adafruit-Blinka-Raspberry-Pi5-Neopixel>=1.0.0rc2
+
+# SSD1306 OLED (I2C)
+adafruit-circuitpython-ssd1306>=2.12.0
+pillow>=10.0.0
+
+# Piezo buzzer / generic GPIO
+RPi.GPIO>=0.7.1
+
+# GPS UART (raw NMEA read; parsing is in src/gps_parser.py, no gpsd dependency)
+pyserial>=3.5
+
+# Testing
+pytest>=8.0.0
