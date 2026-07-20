@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git fetch *)",
+      "Bash(pytest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m py_compile *)",
+      "Bash(hailortcli scan)",
+      "Bash(hailortcli fw-control identify)",
+      "Bash(hailortcli monitor)",
+      "Bash(dmesg *)",
+      "Bash(rpicam-hello *)",
+      "Bash(rpicam-still *)",
+      "Bash(vcgencmd *)",
+      "Bash(i2cdetect *)"
+    ]
+  }
+}
