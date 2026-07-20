@@ -240,7 +240,9 @@ src/        deployment code (Phase 2+; currently a placeholder)
   replace the stock `basic_pipelines/detection.py` callback.
 - Hardware facts: Hailo-8L at `0001:01:00.0`, PCIe Gen 3, `hailo-all` installed.
 - GPIO plan: WS2812B LED bar on GPIO 18; SSD1306 OLED on I2C; piezo buzzer on
-  GPIO; u-blox GPS over UART (RX = GPIO 15), 3.3 V — **never 5 V**.
+  GPIO; u-blox GPS over UART (RX = GPIO 15), 3.3 V — **never 5 V**. Full
+  physical wiring reference (exact pins, I2C setup, buzzer pin caveat):
+  `docs/hardware-wiring.md`.
 - Prefer the official Hailo examples and `rpicam-apps` + Hailo post-process paths.
 - When you write deployment code, match it to the config in `config/` and the
   interface contracts in `docs/`.
