@@ -2,7 +2,14 @@
 
 This is the single place that decides "given this zone, do what" -- the
 zone-to-pattern mapping lives in config/alert-zones.yaml, not hardcoded here.
+
+LED and buzzer patterns are both blocking (time.sleep loops for the pattern
+duration -- see led_bar.py / buzzer.py). They run on parallel threads so the
+two outputs hit together, since a driver reacts faster to a flash and a beep
+landing at the same time than to one finishing before the other starts.
 """
+
+import threading
 
 from src.alerts.buzzer import Buzzer
 from src.alerts.led_bar import LedBar
@@ -17,7 +24,23 @@ class AlertController:
         self.oled = oled
 
     def trigger(self, zone: ZoneConfig, species: str | None = None, distance_m: float | None = None) -> None:
-        """Fire whatever outputs this zone's config specifies. No-ops for fields left unset."""
+        """Fire whatever outputs this zone's config specifies. No-ops for fields left unset.
+
+        Blocks until the LED and buzzer patterns both finish.
+        """
+        if zone.oled is not None and zone.oled.show_species and species is not None and distance_m is not None:
+            self.oled.show_species_distance(species, distance_m)
+        elif zone.oled is None:
+            self.oled.clear()
+
+        led_thread = threading.Thread(target=self._fire_led, args=(zone,))
+        buzzer_thread = threading.Thread(target=self._fire_buzzer, args=(zone,))
+        led_thread.start()
+        buzzer_thread.start()
+        led_thread.join()
+        buzzer_thread.join()
+
+    def _fire_led(self, zone: ZoneConfig) -> None:
         if zone.led is not None:
             if zone.led.pattern == "pulse":
                 self.led.pulse(zone.led.color_rgb, zone.led.cycle_ms)
@@ -26,6 +49,7 @@ class AlertController:
         else:
             self.led.off()
 
+    def _fire_buzzer(self, zone: ZoneConfig) -> None:
         if zone.buzzer is not None:
             if zone.buzzer.pattern == "two-short":
                 self.buzzer.two_short()
@@ -33,8 +57,3 @@ class AlertController:
                 self.buzzer.continuous_rapid()
         else:
             self.buzzer.off()
-
-        if zone.oled is not None and zone.oled.show_species and species is not None and distance_m is not None:
-            self.oled.show_species_distance(species, distance_m)
-        elif zone.oled is None:
-            self.oled.clear()

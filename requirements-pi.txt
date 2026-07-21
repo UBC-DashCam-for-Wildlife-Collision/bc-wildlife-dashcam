@@ -20,8 +20,14 @@ Adafruit-Blinka-Raspberry-Pi5-Neopixel>=1.0.0rc2
 adafruit-circuitpython-ssd1306>=2.12.0
 pillow>=10.0.0
 
-# Piezo buzzer / generic GPIO
-RPi.GPIO>=0.7.1
+# Piezo buzzer / generic GPIO -- do NOT pip install RPi.GPIO here. The classic
+# package can't address the Pi 5's RP1 I/O chip ("Cannot determine SOC
+# peripheral base address"). Pi 5 needs the drop-in shim instead:
+#   sudo apt install python3-rpi-lgpio
+# It installs into system site-packages and satisfies `import RPi.GPIO` via
+# lgpio, same pattern as the neopixel Pi5 driver above. If a stray
+# `RPi.GPIO` ends up pip-installed into this venv, it will shadow the
+# apt one and break -- `pip uninstall RPi.GPIO` to fix.
 
 # GPS UART (raw NMEA read; parsing is in src/gps_parser.py, no gpsd dependency)
 pyserial>=3.5
