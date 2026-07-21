@@ -21,10 +21,13 @@ BC highways.
 
 ## 2. Why it exists
 
-ICBC recorded 12,519 wildlife-vehicle collisions in BC in 2024 — a record, with
-24 fatal. At 100 km/h a car needs 71 metres to stop on dry asphalt. The device
-must see, identify, and warn faster than a human could react and brake inside
-that distance. That single requirement drives every design choice: **speed and
+ICBC recorded 12,519 wildlife-vehicle collisions in BC in 2024 — a high well
+above the decade average of 11,600/yr, with 24 fatal collisions across
+2015–2024. At 100 km/h a car needs 71 metres to stop on dry asphalt (assuming
+a 1.0s reaction time and μ=0.9 braking grip — see docs/physics-references.md
+for the full range, up to ~98m under more conservative assumptions). The
+device must see, identify, and warn faster than a human could react and brake
+inside that distance. That single requirement drives every design choice: **speed and
 reliability come before perfect accuracy.** The research contribution is the
 GPS-tagged wildlife-encounter dataset, which can be cross-referenced against
 ICBC collision data.
