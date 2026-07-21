@@ -224,14 +224,43 @@
 
 @misc{icbc2026wildlife,
   author = {{Insurance Corporation of British Columbia}},
-  title  = {Wildlife Collision Statistics},
+  title  = {ICBC Urges Drivers to Watch for Wildlife as Spring Brings More Animals onto B.C. Roads},
   year   = {2026},
-  note   = {12,519 wildlife crashes in BC in 2024, 24 fatal}
+  url    = {https://icbc.com/about-icbc/newsroom/2026-04-29-wildlife-collisions},
+  note   = {12,519 wildlife crashes in BC in 2024 (high vs. decade average of 11,600/yr); 9,400+ deer strikes = 75% of 2024 crashes. The "24 fatal" figure is CUMULATIVE across 2015--2024 (112,000+ total crashes over that decade), NOT specific to 2024 -- CLAUDE.md section 2 currently implies it is a 2024 figure and should be corrected}
 }
 
-@article{stoppingdistance2022,
-  title   = {Stopping Distance Analysis},
-  journal = {PMC},
-  year    = {2022},
-  note    = {71m at 100 km/h on dry asphalt}
+% Original placeholder here ("stoppingdistance2022" / journal "PMC", no real
+% title or URL) could not be verified and has been replaced with a real,
+% checkable derivation. See docs/physics-references.md for the full worked
+% calculation and how it reproduces (or doesn't) the "71m at 100 km/h"
+% figure in CLAUDE.md section 2.
+
+@misc{wikipedia2026braking,
+  author = {{Wikipedia contributors}},
+  title  = {Braking Distance},
+  year   = {2026},
+  url    = {https://en.wikipedia.org/wiki/Braking_distance},
+  note   = {Total stopping distance = reaction distance + braking distance = v*t_reaction + v^2/(2 mu g); baseline t_reaction=1.5s, mu=0.7 (dry asphalt); notes mu up to 0.9 for ABS-equipped cars with good tires}
+}
+
+@article{lee1976tau,
+  author  = {David N. Lee},
+  title   = {A Theory of Visual Control of Braking Based on Information about Time-to-Collision},
+  journal = {Perception},
+  volume  = {5},
+  number  = {4},
+  pages   = {437--459},
+  year    = {1976},
+  doi     = {10.1068/p050437},
+  note    = {Origin of tau (time-to-collision optical expansion); basis for src/distance.py's ttc_distance_m()}
+}
+
+@book{hartley2004multiview,
+  author    = {Richard Hartley and Andrew Zisserman},
+  title     = {Multiple View Geometry in Computer Vision},
+  edition   = {2nd},
+  publisher = {Cambridge University Press},
+  year      = {2004},
+  note      = {Pinhole camera model, D = (H * f) / P; basis for src/distance.py's thin_lens_distance_m()}
 }
