@@ -64,7 +64,7 @@ Safety rules:
 |---|---|---|
 | Raspberry Pi 5 (8 GB) | Main computer | In hand, OS flashed |
 | Hailo-8L AI Kit (M.2 HAT+, 13 TOPS) | Runs the model | In hand, verified working |
-| Pi Camera Module 3 NoIR | Road camera, night vision | With Aditya, arriving by Jul 8 |
+| Pi Camera Module (imx219 sensor) | Road camera | Connected Jul 29 — **not** the Module 3 NoIR originally planned; confirmed via `rpicam-still` EXIF (`Model: imx219`). No IR-cut/NoIR night sensitivity — flagged for Aditya to confirm whether this is the intended part or needs swapping. |
 | u-blox NEO-M8N GPS | Location, speed, time | Ordering — only missing part |
 | Active piezo buzzer | Primary audible alert | In hand |
 | WS2812B RGB LED bar (GPIO 18) | Visual alert | In hand |
