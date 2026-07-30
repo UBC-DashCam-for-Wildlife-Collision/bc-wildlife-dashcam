@@ -6,7 +6,7 @@ remains, and the timeline. It is written to be self-contained: if you are a
 fresh Claude Code session — for example running on the Raspberry Pi — read this
 first and you have the whole picture.
 
-Last updated: July 5, 2026.
+Last updated: July 30, 2026.
 
 ---
 
@@ -111,10 +111,24 @@ SSD dataset (2,860 imgs) ─► train (Colab, GPU) ─► best.pt ─► quantis
 - The **raw dataset never goes on the Pi.** It lives on the T7 SSD and is only
   used for training and for INT8 calibration, both on a bigger machine.
 - **`best.pt` does not run on the Pi directly.** It must be compiled to Hailo's
-  `.hef` INT8 format with the Hailo Dataflow Compiler (needs ~32 GB RAM — try a
-  Colab high-RAM runtime first). Only the small `.hef` is copied to the Pi.
+  `.hef` INT8 format with the Hailo Dataflow Compiler (needs ~32 GB RAM — Colab
+  Pro's High-RAM runtime, ~50 GB, works and has been used successfully). Only
+  the small `.hef` is copied to the Pi.
 - `best.pt` is backed up in three places: T7 SSD (`models/run1-7class/best.pt`),
   Mac Downloads, and Google Drive.
+- **A GPU runtime is also required, not just High-RAM** — CPU-only forces the
+  Hailo Dataflow Compiler down to optimization level 0 (skips Bias Correction,
+  AdaRound, QAT fine-tuning entirely). Use Colab Pro with a T4 GPU added.
+- **Quantize/compile with explicit end nodes, not Hailo's automatic
+  postprocess extraction.** Auto-extraction (parser's recommended end nodes
+  at `.../Sigmoid` and `.../dfl/Reshape`) parses and optimizes fine but
+  **fails to compile** on Hailo-8L for this model (`Agent infeasible` /
+  `No valid partition found`) — confirmed structural, not a quantization
+  issue. Fix: parse with `--end-node-names` at the six raw per-stride conv
+  outputs, and use a manual `nms_postprocess` JSON config (adapted from
+  Hailo's own official `yolov8n.alls` reference, `"classes": 7`). Full
+  writeup: `docs/meeting_log.md`, July 29-30 2026 entry — read this before
+  touching quantization again.
 
 ## 8. Current status (July 5, 2026)
 
@@ -133,14 +147,27 @@ SSD dataset (2,860 imgs) ─► train (Colab, GPU) ─► best.pt ─► quantis
   source doesn't compile against tappas-core 5.1.0 (`vstream_info()` was
   removed); fixed by symlinking tappas-core's own prebuilt equivalent.
   I2C enabled for the OLED (pending reboot).
-- Camera and GPS not yet attached (arriving by Jul 8). While waiting on
-  them, built and unit-tested (38 passing tests) all of `src/` that doesn't
-  need either: config loaders, distance estimation (thin-lens + TTC fusion),
-  zone classification, approach-vector filter, highest-risk selector, GPS
-  NMEA parser, JSONL detection logger, and LED/OLED/buzzer alert drivers
-  (those three are in hand but not yet physically wired — `simulate=True`
-  mode lets the zone-to-output logic run and be tested without hardware).
-  See `docs/meeting_log.md` (Jul 5 2026 entry) for the full writeup.
+- Camera turned out to be an imx219 sensor (not the Module 3 NoIR originally
+  planned) — connected Jul 29, flagged for Aditya to confirm. LED/OLED/buzzer
+  in hand; GPS still the only missing hardware.
+- Built and unit-tested (38 passing tests) all of `src/` that doesn't need
+  the camera or GPS: config loaders, distance estimation (thin-lens + TTC
+  fusion), zone classification, approach-vector filter, highest-risk
+  selector, GPS NMEA parser, JSONL detection logger, and LED/OLED/buzzer
+  alert drivers (`simulate=True` mode lets the zone-to-output logic run and
+  be tested without hardware). See `docs/meeting_log.md` (Jul 5 2026 entry).
+- **Phase 3 (quantization): IN PROGRESS — first successful compile achieved
+  July 30.** `best.pt` → ONNX → Hailo HAR → INT8 quantized → compiled to
+  `bc_dashcam_yolov8n.hef` (Colab Pro, 50 GB RAM + T4 GPU). Hit and solved a
+  real compiler blocker (auto-postprocess extraction wouldn't compile on
+  Hailo-8L; fixed with explicit end-nodes + manual NMS config — see section
+  7 above and `docs/meeting_log.md` Jul 29-30 entry for the full story).
+  Still open: max-optimization compile (interrupted twice by Colab session
+  drops, deferred to a dedicated uninterrupted session), calibration set
+  expansion (401 images, recommended 1,024+), and the float32-vs-INT8 mAP
+  drop measurement. Immediate next step: get this `.hef` onto the Pi and
+  test live-camera detection through `hailo-rpi5-examples` — doesn't need
+  the max-optimization pass done first.
 
 ## 9. Development phases
 
@@ -148,7 +175,7 @@ SSD dataset (2,860 imgs) ─► train (Colab, GPU) ─► best.pt ─► quantis
 |---|---|---|
 | 1 — Data + documentation | Dataset built, split, trained; docs | ✅ Complete |
 | 2 — Hardware bench setup | Pi + Hailo + peripherals verified | 🔄 In progress |
-| 3 — Training + quantisation | INT8 `.hef`, mAP acceptable | Not started |
+| 3 — Training + quantisation | INT8 `.hef`, mAP acceptable | 🔄 In progress (`.hef` compiled, mAP-drop measurement pending) |
 | 4 — Full integration | Model on Hailo at target fps, all outputs, GPS logging | Not started |
 | 5 — Validation | Road test, FP/FN rates, GPS × ICBC cross-ref | Not started |
 
@@ -170,9 +197,11 @@ SSD dataset (2,860 imgs) ─► train (Colab, GPU) ─► best.pt ─► quantis
 
 ## 11. Remaining work by area
 
-- **Model:** INT8 quantise `best.pt` → `.hef` (Hailo DFC, 32 GB machine), measure
-  float32→INT8 mAP drop, calibrate per-class confidence thresholds (account for
-  lighting), export.
+- **Model:** `.hef` compiled (July 30) — remaining: transfer to Pi and test
+  live-camera detection; re-run optimize+compile with max optimization level
+  in one uninterrupted session; expand calibration set toward 1,024 images;
+  measure float32→INT8 mAP drop; calibrate per-class confidence thresholds
+  (account for lighting).
 - **Deployment (Pi, `src/`):** camera capture → Hailo inference → detection parse;
   distance estimation (thin-lens then TTC fusion); proximity-zone logic;
   approach-vector filter; highest-risk selection; alert outputs (WS2812B LED,

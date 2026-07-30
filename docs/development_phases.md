@@ -97,6 +97,45 @@ calibration) are met yet — those still need real wiring/parts, not just code.
 
 **Status as of June 25, 2026:** Not started. Depends on Phase 1 dataset version being finalized.
 
+**Status as of July 30, 2026:** In progress — first successful INT8
+compilation achieved. `best.pt` exported to ONNX (opset 11, imgsz 640,
+output shape confirms the 7-class head). Quantized and compiled to
+`bc_dashcam_yolov8n.hef` for Hailo-8L via Colab Pro (50 GB RAM + T4 GPU).
+
+Hit and resolved a real compiler blocker along the way: Hailo's automatic
+postprocess-extraction feature parsed and quantized fine but failed to
+*compile* twice (`Agent infeasible` / `No valid partition found`), even
+after fixing the optimization level with a GPU — proving the problem was
+structural, not a quantization-quality issue. Fixed by parsing with
+explicit `--end-node-names` at the six raw per-stride conv outputs (matching
+Hailo's own official `yolov8n.alls` reference pattern) and building a
+custom NMS postprocess config (`"classes": 7`). See `docs/meeting_log.md`,
+July 29-30 2026 entry, for the full technical writeup — this is worth
+reading before touching quantization again.
+
+**What's done:**
+- ONNX export ✅
+- Parse to HAR (manual end-nodes, matching Hailo's official reference
+  layer numbering `conv41/42`, `conv52/53`, `conv62/63`) ✅
+- Optimize (INT8 quantization), currently at optimization level 1
+  (Bias Correction ran; AdaRound and QAT fine-tuning did not — need a
+  GPU + calibration set ≥1,024 for those, currently at 401) ✅ but not final
+- Compile → working `.hef` ✅ (14s, non-max optimization)
+
+**What's not done yet (exit criteria still open):**
+- **Max-optimization compile** — attempted, interrupted twice by Colab
+  session drops during unattended waits; deferred to a dedicated,
+  uninterrupted session (likely overnight).
+- **Calibration set expansion** toward the recommended 1,024 images.
+- **mAP degradation measurement** (float32 vs INT8 on held-out test
+  split) — deferred until the max-optimization `.hef` is ready, so as not
+  to measure a known-suboptimal intermediate.
+- **Per-class confidence threshold calibration** (accounting for lighting,
+  per supervisor requirement).
+- `.hef` has not yet been transferred to the Pi or run against a live
+  camera feed — that's the immediate next step, doesn't require the
+  max-optimization pass to be done first.
+
 ---
 
 ## Phase 4 — Full Hardware Integration
