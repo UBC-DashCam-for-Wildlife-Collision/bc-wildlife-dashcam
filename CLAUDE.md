@@ -165,9 +165,13 @@ SSD dataset (2,860 imgs) ─► train (Colab, GPU) ─► best.pt ─► quantis
   Still open: max-optimization compile (interrupted twice by Colab session
   drops, deferred to a dedicated uninterrupted session), calibration set
   expansion (401 images, recommended 1,024+), and the float32-vs-INT8 mAP
-  drop measurement. Immediate next step: get this `.hef` onto the Pi and
-  test live-camera detection through `hailo-rpi5-examples` — doesn't need
-  the max-optimization pass done first.
+  drop measurement. **The compiled `.hef` is committed at `models/bc_dashcam_yolov8n.hef`
+  in this repo** (SHA-256 `55efca50ae28e443f4acb7e3b6172ae136273566311cd6728394f4f37ba4031b`,
+  9,497,066 bytes) — a deliberate exception to the usual "no model weights in
+  git" policy (see `.gitignore`), specifically so the Pi can `git pull` it
+  with no Drive/network-share dependency. Immediate next step: on the Pi,
+  `git pull`, verify the checksum, and wire it into `hailo-rpi5-examples`
+  in place of the stock demo model, with the live camera feed.
 
 ## 9. Development phases
 

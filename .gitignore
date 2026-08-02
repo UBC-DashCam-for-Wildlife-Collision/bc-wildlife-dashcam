@@ -33,6 +33,11 @@ Thumbs.db
 *.onnx
 *.hef
 *.tflite
+# Exception: the current deployment-ready compiled model lives in models/
+# so the Pi can `git pull` it directly, without Drive access. This is a
+# deliberate exception for the one deploy artifact, not a policy change --
+# training checkpoints and intermediate .hef/.onnx exports stay ignored.
+!models/bc_dashcam_yolov8n.hef
 
 # Data (stored on T7 SSD and Google Drive, not in repo)
 data/
