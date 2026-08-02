@@ -1,0 +1,14 @@
+{
+    "detection_threshold": 0.3,
+    "max_boxes": 50,
+    "labels": [
+        "unlabeled",
+        "bear",
+        "cougar",
+        "coyote",
+        "deer",
+        "elk",
+        "moose",
+        "raccoon"
+    ]
+}

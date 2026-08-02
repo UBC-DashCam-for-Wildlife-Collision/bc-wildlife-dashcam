@@ -46,6 +46,9 @@ metadata/
 yolo_dataset/
 yolo_dataset.zip
 
+# Runtime output (JSONL detection logs from scripts/run_wildlife_detection.py)
+logs/
+
 # Colab artifacts
 MegaDetector/
 wandb/
