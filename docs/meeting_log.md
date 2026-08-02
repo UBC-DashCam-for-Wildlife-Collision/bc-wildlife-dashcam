@@ -2,6 +2,83 @@
 
 ---
 
+## August 2, 2026 — Work Session
+
+**Present:** Deepansh (Mac, resolving issues flagged by a same-day Pi session)
+**Focus:** Fixing `docs/open-issues-2026-08-02.md`, left by Claude Code on
+the Pi after wiring the compiled `.hef` into the live detection pipeline
+
+### Context
+
+Earlier today, the Pi session reconnected the camera, wrote
+`scripts/run_wildlife_detection.py` (replacing `hailo_apps`' stock COCO
+callback with this project's real approach-vector → risk-selection →
+distance → zone → alert pipeline), and ran it end-to-end successfully
+against both the stock sample video and a live indoor test. It left three
+issues for the Mac side, ranked by actionability.
+
+### Resolved
+
+**Label index convention (was flagged BLOCKING).** The Pi's
+`config/hailo_labels.json` had guessed Hailo's usual `0=unlabeled,
+1-7=species` convention, copied from the only reference file available
+locally (`hailo-rpi5-examples/local_resources/barcode-labels.json` — a
+different model's config, not applicable here). The actual compile
+config was built in the Jul 29-30 Colab session and never got committed —
+reconstructed it exactly from that session's transcript and committed it:
+`models/nms_config_7class.json` (the custom NMS postprocess config,
+`"classes": 7`, no unlabeled/background offset) and
+`models/bc_dashcam_yolov8n.alls` (the model script — normalization +
+sigmoid activations + the NMS postprocess call). Neither file has an
+unlabeled/background class, mirroring Hailo's own official reference
+config for COCO (class 0 = "person", not background). Combined with
+`scripts/build-yolo-dataset.py`'s alphabetical 0-indexed class list,
+this confirms: network output index 0-6 maps **directly** to
+bear/cougar/coyote/deer/elk/moose/raccoon, no offset. Fixed
+`config/hailo_labels.json` (removed the `"unlabeled"` entry) and updated
+`scripts/run_wildlife_detection.py`'s docstring accordingly. **Needs a
+`git pull` on the Pi before the next real-animal test** — the Pi's copy
+is still running the wrong label list until then.
+
+**Stray runtime files (low priority).** Added `hailort.log`,
+`reboot.save`, `reboot.save.*` to `.gitignore` — routine Hailo/Pi runtime
+artifacts, not meaningful to track.
+
+**Camera calibration prep.** Can't run the actual checkerboard
+calibration without the physical session (Aditya, per
+`docs/interface_contract.md` section 2), but wrote
+`scripts/calibrate_camera.py` now so it's ready the moment calibration
+photos exist: takes a folder of checkerboard photos, runs
+`cv2.findChessboardCorners` + `cv2.calibrateCamera`, saves
+`camera_matrix.npy`/`dist_coeffs.npy`, and prints the focal length in
+pixels to feed directly into `run_wildlife_detection.py --focal-length-px`.
+
+### Not resolved — genuinely needs the Pi / physical hardware
+
+**Camera identity is contradictory, not settled.** The `imx219` EXIF
+model tag (used earlier to conclude "not the NoIR variant") can't
+actually distinguish NoIR from standard — same sensor chip, different
+lens filter, EXIF doesn't see the filter. A live preview shot today under
+indoor fluorescent lighting showed a strong magenta/pink color cast,
+which is the classic symptom of *no* IR-cut filter — i.e. evidence now
+points toward it *being* NoIR after all. The two pieces of evidence
+conflict and neither is conclusive. Resolution needs either a physical
+check (the module usually has "NoIR" printed on it) or a controlled test
+(point an IR remote at the camera while pressing a button — a NoIR
+sensor shows the LED as a bright dot on screen, a standard sensor shows
+nothing). Flagged in CLAUDE.md's hardware table so this doesn't get
+silently treated as settled either way. This matters for the nighttime
+range discussion (`docs/development_phases.md` Phase 5) — don't assume
+IR sensitivity either direction until this is checked.
+
+### Still open (unchanged from before today)
+
+Max-optimization compile and the float32-vs-INT8 mAP measurement are
+still deferred (see Jul 29-30 entry below) — today's fixes only affect
+correctness (are labels right), not quantization quality.
+
+---
+
 ## July 29-30, 2026 — Work Session
 
 **Present:** Deepansh (solo, Colab + Claude Code on Mac)

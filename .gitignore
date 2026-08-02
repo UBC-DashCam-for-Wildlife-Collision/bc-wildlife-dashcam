@@ -49,6 +49,11 @@ yolo_dataset.zip
 # Runtime output (JSONL detection logs from scripts/run_wildlife_detection.py)
 logs/
 
+# Hailo/Pi runtime artifacts (regenerated on every run, not meaningful to keep)
+hailort.log
+reboot.save
+reboot.save.*
+
 # Colab artifacts
 MegaDetector/
 wandb/

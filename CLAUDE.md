@@ -6,7 +6,7 @@ remains, and the timeline. It is written to be self-contained: if you are a
 fresh Claude Code session — for example running on the Raspberry Pi — read this
 first and you have the whole picture.
 
-Last updated: July 30, 2026.
+Last updated: August 2, 2026.
 
 ---
 
@@ -64,7 +64,7 @@ Safety rules:
 |---|---|---|
 | Raspberry Pi 5 (8 GB) | Main computer | In hand, OS flashed |
 | Hailo-8L AI Kit (M.2 HAT+, 13 TOPS) | Runs the model | In hand, verified working |
-| Pi Camera Module (imx219 sensor) | Road camera | Connected Jul 29 — **not** the Module 3 NoIR originally planned; confirmed via `rpicam-still` EXIF (`Model: imx219`). No IR-cut/NoIR night sensitivity — flagged for Aditya to confirm whether this is the intended part or needs swapping. |
+| Pi Camera Module (imx219 sensor) | Road camera | Connected Jul 29 — **not** the Module 3 NoIR originally planned; confirmed via `rpicam-still` EXIF (`Model: imx219`). **Camera identity is unresolved as of Aug 2 (see below), don't treat the "no NoIR" call as settled.** |
 | u-blox NEO-M8N GPS | Location, speed, time | Ordering — only missing part |
 | Active piezo buzzer | Primary audible alert | In hand |
 | WS2812B RGB LED bar (GPIO 18) | Visual alert | In hand |
@@ -130,7 +130,7 @@ SSD dataset (2,860 imgs) ─► train (Colab, GPU) ─► best.pt ─► quantis
   writeup: `docs/meeting_log.md`, July 29-30 2026 entry — read this before
   touching quantization again.
 
-## 8. Current status (July 5, 2026)
+## 8. Current status (August 2, 2026)
 
 - **Phase 1 (data + docs): COMPLETE.** 3,015 images sourced, MegaDetector-filtered
   to 2,860 usable across 7 species. Dataset built locally into a 70/20/10 split
@@ -156,6 +156,27 @@ SSD dataset (2,860 imgs) ─► train (Colab, GPU) ─► best.pt ─► quantis
   selector, GPS NMEA parser, JSONL detection logger, and LED/OLED/buzzer
   alert drivers (`simulate=True` mode lets the zone-to-output logic run and
   be tested without hardware). See `docs/meeting_log.md` (Jul 5 2026 entry).
+- **Aug 2 — live detection pipeline wired up on the Pi.**
+  `scripts/run_wildlife_detection.py` (committed on the Pi, then pulled here)
+  replaces `hailo_apps`' stock COCO callback with this project's real
+  pipeline: approach-vector filter → highest-risk selection → distance →
+  zone → alert. Ran end-to-end with no crashes against both the stock
+  sample video and a live indoor test scene. Two things fixed same-day:
+  (1) **label indexing was wrong** — the Pi's `config/hailo_labels.json` had
+  a spurious `"unlabeled"` class 0 (copied from an unrelated example on the
+  Pi); the real compile config (`models/nms_config_7class.json` +
+  `models/bc_dashcam_yolov8n.alls`, now committed) has no such offset —
+  network output 0-6 maps directly to bear/cougar/coyote/deer/elk/moose/
+  raccoon. Fixed and verified against the actual config, not just asserted.
+  (2) Wrote `scripts/calibrate_camera.py` (OpenCV checkerboard → 
+  `camera_matrix.npy`/`dist_coeffs.npy` → prints focal length in px) so
+  it's ready the moment Aditya's calibration photos exist — currently
+  blocked on that physical session, not on code.
+  **Still unresolved:** camera identity (imx219 EXIF says "not NoIR", but a
+  live preview under indoor lighting showed a magenta cast — classic
+  no-IR-cut-filter symptom — evidence conflicts; needs a physical check on
+  the Pi, not fixable from here). See `docs/open-issues-2026-08-02.md` and
+  `docs/meeting_log.md` (Aug 2 entry) for full detail.
 - **Phase 3 (quantization): IN PROGRESS — first successful compile achieved
   July 30.** `best.pt` → ONNX → Hailo HAR → INT8 quantized → compiled to
   `bc_dashcam_yolov8n.hef` (Colab Pro, 50 GB RAM + T4 GPU). Hit and solved a

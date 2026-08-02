@@ -12,19 +12,18 @@ zone/alert logic) with this project's actual pipeline: approach-vector
 filter -> highest-risk selection -> distance -> zone -> alert, per
 CLAUDE.md sections 4 and 16.
 
-Two known gaps -- read before trusting this script's output:
+Label indexing (config/hailo_labels.json) was verified 2026-08-02 against
+the actual compile config, models/nms_config_7class.json + models/
+bc_dashcam_yolov8n.alls (reconstructed from the Colab session that produced
+this .hef -- see docs/meeting_log.md, Aug 2 entry): no "unlabeled" class 0,
+network output index 0-6 maps directly to bear/cougar/coyote/deer/elk/
+moose/raccoon, matching scripts/build-yolo-dataset.py's alphabetical
+0-indexed class list. hailo_labels.json has been corrected to drop the
+"unlabeled" entry it previously had at index 0.
 
-1. Label indexing is UNVERIFIED. config/hailo_labels.json assumes Hailo's
-   usual convention of a reserved "unlabeled" class 0 with the 7 real
-   species 1-indexed after it (matching hailo-rpi5-examples/local_resources/
-   barcode-labels.json, the only reference example on this Pi). The actual
-   nms_postprocess JSON used to compile this .hef was built on the
-   Mac/Colab side and isn't committed to this repo -- get it committed and
-   cross-check before trusting species labels. Watch for a consistent
-   off-by-one during the iPad species test (e.g. every animal reported as
-   the species before/after it alphabetically) as the signature of exactly
-   this bug.
-2. FOCAL_LENGTH_PX_PLACEHOLDER below is NOT a real calibration value --
+One known gap -- read before trusting this script's output:
+
+1. FOCAL_LENGTH_PX_PLACEHOLDER below is NOT a real calibration value --
    Aditya's checkerboard calibration (camera_matrix.npy, per
    docs/interface_contract.md) hasn't happened yet. Distances/zones out of
    this script aren't trustworthy until that lands; override with
