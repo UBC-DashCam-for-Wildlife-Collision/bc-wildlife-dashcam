@@ -48,6 +48,7 @@ from hailo_apps.hailo_app_python.apps.detection.detection_pipeline import GStrea
 from hailo_apps.hailo_app_python.core.common.buffer_utils import get_caps_from_pad  # noqa: E402
 from hailo_apps.hailo_app_python.core.gstreamer.gstreamer_app import app_callback_class  # noqa: E402
 
+from src.alerts.buzzer import DEFAULT_VOLUME as DEFAULT_BUZZER_VOLUME  # noqa: E402
 from src.alerts.buzzer import Buzzer  # noqa: E402
 from src.alerts.controller import AlertController  # noqa: E402
 from src.alerts.led_bar import LedBar  # noqa: E402
@@ -73,7 +74,14 @@ class WildlifeCallbackState(app_callback_class):
     the approach-vector tracker, the JSONL logger, and the alert controller.
     """
 
-    def __init__(self, focal_length_px: float, log_path: Path, simulate_alerts: bool):
+    def __init__(
+        self,
+        focal_length_px: float,
+        log_path: Path,
+        simulate_alerts: bool,
+        num_pixels: int = 1,
+        buzzer_volume: float = DEFAULT_BUZZER_VOLUME,
+    ):
         super().__init__()
         self.species_table = load_species_table()
         self.zone_table = load_zone_table()
@@ -81,8 +89,8 @@ class WildlifeCallbackState(app_callback_class):
         self.logger = DetectionLogger(log_path)
         self.focal_length_px = focal_length_px
         self.alert_controller = AlertController(
-            led=LedBar(simulate=simulate_alerts),
-            buzzer=Buzzer(simulate=simulate_alerts),
+            led=LedBar(simulate=simulate_alerts, num_pixels=num_pixels),
+            buzzer=Buzzer(simulate=simulate_alerts, volume=buzzer_volume),
             oled=OledDisplay(simulate=simulate_alerts),
         )
         if simulate_alerts:
@@ -174,6 +182,20 @@ def main():
         "flip this on only once the circuit is soldered and wired (run "
         "scripts/test_led_bar.py etc. standalone first).",
     )
+    my_parser.add_argument(
+        "--num-pixels",
+        type=int,
+        default=1,
+        help="LED pixel count. Default 1 for the current single-LED bench "
+        "circuit; set to the full bar's count once that's soldered.",
+    )
+    my_parser.add_argument(
+        "--buzzer-volume",
+        type=float,
+        default=DEFAULT_BUZZER_VOLUME,
+        help="Buzzer PWM duty cycle, 0.0-1.0 (see src/alerts/buzzer.py). "
+        f"Default {DEFAULT_BUZZER_VOLUME} -- full volume (1.0) is ear-splitting indoors.",
+    )
     known, remaining = my_parser.parse_known_args()
 
     # hailo_apps' own parser (built inside GStreamerDetectionApp) reads
@@ -196,6 +218,8 @@ def main():
         focal_length_px=known.focal_length_px,
         log_path=known.log_path,
         simulate_alerts=not known.live_alerts,
+        num_pixels=known.num_pixels,
+        buzzer_volume=known.buzzer_volume,
     )
     app = GStreamerDetectionApp(app_callback, user_data)
     app.run()

@@ -2,13 +2,26 @@
 
 Shows species + distance in zone 3 (config/alert-zones.yaml). Requires I2C
 enabled on the Pi (`sudo raspi-config nonint do_i2c 0`, then reboot) and the
-display wired to the I2C pins (SDA/SCL) -- neither has happened on this
-bench as of Jul 5 2026, so `simulate=True` is the only mode that currently
-runs end-to-end here. See scripts/test_oled.py for the hardware smoke test.
+display wired to the I2C pins (SDA/SCL). Verified responding at 0x3c during
+the Aug 2 2026 bench test.
+
+Layout is deliberately large and simple, not dense with information: a
+driver glancing at this while approaching an animal needs the species and
+distance readable instantly, not a small font packed with detail. Falls
+back to PIL's tiny built-in font if DejaVu isn't present so this never
+crashes over cosmetics.
+
+`simulate=True` records calls instead of touching hardware -- see
+led_bar.py docstring for why. See scripts/test_oled.py for the standalone
+hardware smoke test.
 """
 
 WIDTH = 128
 HEIGHT = 64
+
+FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+SPECIES_FONT_SIZE = 18
+DISTANCE_FONT_SIZE = 28
 
 
 class OledDisplay:
@@ -18,17 +31,25 @@ class OledDisplay:
         self._display = None
         self._draw = None
         self._image = None
+        self._species_font = None
+        self._distance_font = None
 
         if not simulate:
             import board
             import busio
             from adafruit_ssd1306 import SSD1306_I2C
-            from PIL import Image, ImageDraw
+            from PIL import Image, ImageDraw, ImageFont
 
             i2c = busio.I2C(board.SCL, board.SDA)
             self._display = SSD1306_I2C(WIDTH, HEIGHT, i2c)
             self._image = Image.new("1", (WIDTH, HEIGHT))
             self._draw = ImageDraw.Draw(self._image)
+            try:
+                self._species_font = ImageFont.truetype(FONT_PATH, SPECIES_FONT_SIZE)
+                self._distance_font = ImageFont.truetype(FONT_PATH, DISTANCE_FONT_SIZE)
+            except OSError:
+                self._species_font = ImageFont.load_default()
+                self._distance_font = ImageFont.load_default()
 
     def clear(self) -> None:
         self.calls.append(("clear",))
@@ -37,12 +58,18 @@ class OledDisplay:
         self._display.fill(0)
         self._display.show()
 
+    def _centered_text(self, text: str, y: int, font) -> None:
+        left, top, right, bottom = self._draw.textbbox((0, 0), text, font=font)
+        x = max(0, (WIDTH - (right - left)) // 2)
+        self._draw.text((x, y), text, font=font, fill=255)
+
     def show_species_distance(self, species: str, distance_m: float) -> None:
         self.calls.append(("show_species_distance", species, distance_m))
         if self.simulate:
             return
         self._draw.rectangle((0, 0, WIDTH, HEIGHT), outline=0, fill=0)
-        self._draw.text((0, 0), species.upper(), fill=255)
-        self._draw.text((0, 20), f"{distance_m:.0f} m", fill=255)
+        self._centered_text(species.upper(), 2, self._species_font)
+        self._draw.line((10, 24, WIDTH - 10, 24), fill=255)
+        self._centered_text(f"{distance_m:.0f} m", 32, self._distance_font)
         self._display.image(self._image)
         self._display.show()
