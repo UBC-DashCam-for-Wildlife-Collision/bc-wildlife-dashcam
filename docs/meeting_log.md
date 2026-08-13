@@ -2,6 +2,92 @@
 
 ---
 
+## August 12, 2026 — Work Session
+
+**Present:** Deepansh (Mac + Colab)
+**Focus:** Re-running quantization with a full-size calibration set and
+completing the max-optimization compile that was deferred twice in the
+July 29-30 session
+
+### Why this session happened
+
+The July 30 `.hef` (committed to the repo) was compiled from a
+401-image calibration set at optimization level 0/1 — Hailo's Dataflow
+Compiler had explicitly warned that AdaRound and Quantization-Aware
+Fine-Tuning were skipped because the calibration set was under its
+1,024-image recommendation. Two earlier attempts to run
+`compiler_optimization_level=max` for the best possible partition had
+both been interrupted before finishing (once by what looked like an
+accidental cell interrupt, once by a Colab VM reset during an unattended
+gym trip) — see the July 29-30 entry below.
+
+### What was done
+
+**Expanded the calibration set to all 2,001 training images** (up from
+401), sampled from the SSD's `yolo_dataset/train/images` — same rule as
+before, training split only, held-out test split untouched. Verified
+before checking Hailo's own docs that the "1,024" threshold in the
+optimizer's warning isn't arbitrary: Hailo's `post_quantization_optimization`
+algorithms (`finetune`, `adaround`) each default to a `dataset_size` of
+1,024/256 respectively — so the fix was genuinely just providing enough
+data, not a special flag.
+
+Uploaded the 1.1 GB calibration zip through Drive (not Colab's direct
+upload widget, which corrupted a 524 MB file in the July 29-30 session).
+Rebuilt `hailo_env` on a fresh GPU + High-RAM runtime, re-verified the DFC
+wheel's byte count before installing, and reused the already-parsed
+`bc_dashcam_yolov8n_manual.har` from July 30 (no need to re-parse, since
+the manual end-node fix from that session was still valid).
+
+**Re-ran `hailo optimize`** with the larger calibration set. Result:
+optimization level 2 selected automatically (no "reducing level" warning
+this time), and — critically — **Quantization-Aware Fine-Tuning actually
+ran** (4 real epochs, 128 steps each, ~8m14s, drawing 1,024 entries from
+the calibration pool), superseding the July 30 run's Bias-Correction-only
+result. Bias Correction and AdaRound both showed as "skipped" at this
+level — not a regression, since full fine-tuning is a strictly more
+thorough technique that supersedes the two lighter approximation methods.
+
+**Re-ran `hailo compiler`** with `compiler_optimization_level=max` against
+this better-optimized HAR. This time it ran to completion: 133 partition
+iterations across ~5 hours of wall-clock time (mostly unattended), settling
+on a 3-context partition, each context individually allocated with zero
+reverts, followed by a 17-second final HEF build.
+**`"Successful Compilation"`** — the max-optimization result this project
+has been chasing since July 29.
+
+One practical thing worth recording: partway through the run, the browser
+tab's live connection to Colab dropped (the UI showed "Reconnect"), but
+**the underlying compute kept running server-side and finished
+successfully anyway**. This is a useful data point distinguishing two
+different failure modes seen across these sessions: a *browser-side*
+disconnect (recoverable, as happened here) versus an actual *Colab
+VM/session reset* (not recoverable, as happened twice on July 29-30) — the
+two look similar from the UI but have very different consequences.
+
+**Replaced the committed `.hef`.** The new compile produced the same
+filename (`bc_dashcam_yolov8n.hef`), overwriting the file on Drive. This
+meant the copy already committed to the repo from July 30 was now stale.
+Downloaded the new file, verified its checksum differed from the old one
+(confirming it was genuinely the new compile, not a stale re-download),
+and committed the replacement: SHA-256
+`8886546c919420f652090e78275785b2e3e034e45c8597ea9734d75a66fff10f`,
+12,196,315 bytes (up from the July 30 version's 9,497,066 bytes — larger
+file is consistent with the more thorough optimization changing per-layer
+bit-width allocations).
+
+### Not done
+
+- **mAP degradation measurement (float32 vs INT8)** is now the sole
+  remaining Phase 3 exit criterion — this is the natural next step, now
+  that a properly-optimized `.hef` exists to measure.
+- **The Pi has not yet pulled this new `.hef`.** Next action: `git pull`
+  on the Pi, verify the checksum above, and re-run
+  `scripts/run_wildlife_detection.py` to confirm the pipeline still runs
+  cleanly against the new (larger, differently-quantized) file.
+
+---
+
 ## August 2, 2026 — Work Session
 
 **Present:** Deepansh (Mac, resolving issues flagged by a same-day Pi session)

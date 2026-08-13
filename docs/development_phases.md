@@ -113,28 +113,39 @@ custom NMS postprocess config (`"classes": 7`). See `docs/meeting_log.md`,
 July 29-30 2026 entry, for the full technical writeup — this is worth
 reading before touching quantization again.
 
+**Status as of August 12, 2026:** Max-optimization compile complete,
+superseding the July 30 result. Expanded the calibration set from 401 to
+the **full 2,001-image training split** (well past Hailo's 1,024
+recommendation), which let the optimizer run real **Quantization-Aware
+Fine-Tuning** (4 epochs) instead of the earlier Bias-Correction-only pass.
+Then ran `compiler_optimization_level=max` to completion in one ~5-hour
+Colab session (133 partition iterations, settled on a 3-context result).
+See `docs/meeting_log.md`, August 12 2026 entry, for the full session
+writeup, including a note on Colab's browser-disconnect-vs-session-reset
+distinction that made this run survive where two earlier attempts didn't.
+
 **What's done:**
 - ONNX export ✅
 - Parse to HAR (manual end-nodes, matching Hailo's official reference
   layer numbering `conv41/42`, `conv52/53`, `conv62/63`) ✅
-- Optimize (INT8 quantization), currently at optimization level 1
-  (Bias Correction ran; AdaRound and QAT fine-tuning did not — need a
-  GPU + calibration set ≥1,024 for those, currently at 401) ✅ but not final
-- Compile → working `.hef` ✅ (14s, non-max optimization)
+- Optimize (INT8 quantization) at **default optimization level 2** —
+  Quantization-Aware Fine-Tuning ran for real (4 epochs, 1,024-entry
+  dataset), superseding the earlier Bias-Correction-only level 1 result ✅
+- Compile with **`compiler_optimization_level=max`** → working `.hef` ✅
+  (133-iteration partition search, ~5 hours, 3-context result)
+- **`.hef` committed to `models/bc_dashcam_yolov8n.hef`** in the repo,
+  replacing the earlier non-max version (SHA-256
+  `8886546c919420f652090e78275785b2e3e034e45c8597ea9734d75a66fff10f`,
+  12,196,315 bytes) ✅
 
 **What's not done yet (exit criteria still open):**
-- **Max-optimization compile** — attempted, interrupted twice by Colab
-  session drops during unattended waits; deferred to a dedicated,
-  uninterrupted session (likely overnight).
-- **Calibration set expansion** toward the recommended 1,024 images.
 - **mAP degradation measurement** (float32 vs INT8 on held-out test
-  split) — deferred until the max-optimization `.hef` is ready, so as not
-  to measure a known-suboptimal intermediate.
+  split) — now the sole remaining Phase 3 exit criterion.
 - **Per-class confidence threshold calibration** (accounting for lighting,
   per supervisor requirement).
-- `.hef` has not yet been transferred to the Pi or run against a live
-  camera feed — that's the immediate next step, doesn't require the
-  max-optimization pass to be done first.
+- The Pi needs to `git pull` this new `.hef` and re-verify the detection
+  pipeline still runs cleanly against it (different file, same filename as
+  before).
 
 ---
 

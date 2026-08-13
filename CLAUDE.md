@@ -6,7 +6,7 @@ remains, and the timeline. It is written to be self-contained: if you are a
 fresh Claude Code session — for example running on the Raspberry Pi — read this
 first and you have the whole picture.
 
-Last updated: August 2, 2026.
+Last updated: August 12, 2026.
 
 ---
 
@@ -177,22 +177,28 @@ SSD dataset (2,860 imgs) ─► train (Colab, GPU) ─► best.pt ─► quantis
   no-IR-cut-filter symptom — evidence conflicts; needs a physical check on
   the Pi, not fixable from here). See `docs/open-issues-2026-08-02.md` and
   `docs/meeting_log.md` (Aug 2 entry) for full detail.
-- **Phase 3 (quantization): IN PROGRESS — first successful compile achieved
-  July 30.** `best.pt` → ONNX → Hailo HAR → INT8 quantized → compiled to
+- **Phase 3 (quantization): IN PROGRESS — max-optimization compile achieved
+  Aug 12.** `best.pt` → ONNX → Hailo HAR → INT8 quantized → compiled to
   `bc_dashcam_yolov8n.hef` (Colab Pro, 50 GB RAM + T4 GPU). Hit and solved a
   real compiler blocker (auto-postprocess extraction wouldn't compile on
   Hailo-8L; fixed with explicit end-nodes + manual NMS config — see section
   7 above and `docs/meeting_log.md` Jul 29-30 entry for the full story).
-  Still open: max-optimization compile (interrupted twice by Colab session
-  drops, deferred to a dedicated uninterrupted session), calibration set
-  expansion (401 images, recommended 1,024+), and the float32-vs-INT8 mAP
-  drop measurement. **The compiled `.hef` is committed at `models/bc_dashcam_yolov8n.hef`
-  in this repo** (SHA-256 `55efca50ae28e443f4acb7e3b6172ae136273566311cd6728394f4f37ba4031b`,
-  9,497,066 bytes) — a deliberate exception to the usual "no model weights in
-  git" policy (see `.gitignore`), specifically so the Pi can `git pull` it
-  with no Drive/network-share dependency. Immediate next step: on the Pi,
-  `git pull`, verify the checksum, and wire it into `hailo-rpi5-examples`
-  in place of the stock demo model, with the live camera feed.
+  **Superseded Aug 12:** expanded the calibration set to the full 2,001-image
+  training split (well past Hailo's 1,024 recommendation), which let the
+  optimizer run real Quantization-Aware Fine-Tuning (4 epochs) instead of
+  the earlier Bias-Correction-only pass, then ran
+  `compiler_optimization_level=max` to completion in one ~5-hour session
+  (133 partition iterations, 3-context result) — see `docs/meeting_log.md`
+  Aug 12 entry. **The compiled `.hef` is committed at
+  `models/bc_dashcam_yolov8n.hef` in this repo** (SHA-256
+  `8886546c919420f652090e78275785b2e3e034e45c8597ea9734d75a66fff10f`,
+  12,196,315 bytes) — a deliberate exception to the usual "no model weights
+  in git" policy (see `.gitignore`), specifically so the Pi can `git pull`
+  it with no Drive/network-share dependency. Still open: the float32-vs-INT8
+  mAP drop measurement (Phase 3's remaining exit criterion). Immediate next
+  step: on the Pi, `git pull`, verify the checksum against the value above,
+  and confirm the detection pipeline (`scripts/run_wildlife_detection.py`)
+  still runs cleanly against this larger/different `.hef`.
 
 ## 9. Development phases
 
