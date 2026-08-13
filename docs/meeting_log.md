@@ -2,6 +2,83 @@
 
 ---
 
+## August 12, 2026 — Work Session (Pi: live test of the max-optimization `.hef`)
+
+**Present:** Deepansh + Aditya (Pi bench)
+**Focus:** First live-camera test of the Aug 12 max-optimization `.hef`
+against real animal photos, plus continued hardware bring-up (camera,
+OLED, LED bar, buzzer volume)
+
+### What was done
+
+- **Camera reconnected after physical rework.** Two distinct failure modes
+  hit back-to-back: (1) CSI not detected at all after reconnecting (`No
+  cameras available!`, no probe activity in `dmesg`) — expected, since CSI
+  isn't hot-pluggable and just needed a reboot; (2) after that reboot, the
+  driver *did* probe the sensor but failed with `imx219 11-0010: error
+  -EREMOTEIO: failed to read chip id 219` — a genuine bad connection (cable
+  not fully seated / latch not closed), fixed by physically reseating the
+  ribbon cable. Camera has been stable since.
+- **Buzzer volume fixed and OLED layout improved** (`src/alerts/buzzer.py`,
+  `src/alerts/oled_display.py`) — PWM-driven duty-cycle volume control
+  instead of full-blast digital on/off, and a centered/auto-fit-font OLED
+  layout. Also found and fixed a real bug: installing `adafruit-blinka`
+  into the `hailo-rpi5-examples` venv (needed for `board`/`busio`/
+  `neopixel` imports) pulls in a real `RPi.GPIO` as a transitive
+  dependency, silently shadowing the `rpi-lgpio` shim Pi 5 needs —
+  reproduced as `RuntimeError: Cannot determine SOC peripheral base
+  address`; fixed by uninstalling the stray `RPi.GPIO` from that venv.
+- **`pipewire`/`wireplumber` (desktop session services) intermittently grab
+  the camera device** (`/dev/video4`), causing `Failed to queue buffer:
+  Operation already in progress`. Not our code — stopping those services
+  (`systemctl --user stop wireplumber pipewire ...`) frees the device.
+  They restart on login/reboot, so this needs redoing each session until a
+  more permanent fix (e.g. a udev rule or disabling the services) is put
+  in place.
+- **Live species test against the new max-optimization `.hef`**, ~10 rounds
+  of holding animal photos on an iPad up to the camera with `--live-alerts`
+  running (real LED bar, OLED, buzzer, not simulated). **Accuracy was still
+  not reliable** — across rounds the dominant reported species varied
+  unpredictably (raccoon, moose, cougar, coyote, and deer each topped
+  different rounds) with no consistent single wrong answer, which argues
+  against a remaining indexing bug (already verified separately against
+  the real compile config) and points instead at the already-documented
+  domain-shift limitation (CLAUDE.md section 14) — an iPad screen
+  introduces glare, moiré (pixel-grid-on-pixel-grid interference), and
+  backlit color shift that real camera-trap training photos don't have.
+  **The float32-vs-INT8 mAP drop still hasn't been measured**, so it's
+  also possible this specific `.hef`'s real-world accuracy ceiling is part
+  of the story, independent of the screen artifact issue. Printed matte
+  photos or the actual road test would both give a cleaner read than an
+  iPad screen.
+- **OLED intermittently lost I2C communication mid-run**, several times
+  across the ~10 rounds: `OSError: [Errno 121] Remote I/O error` from the
+  `adafruit_ssd1306` write path. Sometimes this happened inside a running
+  alert (killing just that background thread, detections kept logging
+  fine); twice it happened at `OledDisplay.__init__` and crashed the whole
+  script before the camera pipeline even started. `i2cdetect -y 1` showed
+  the display at `0x3c` again within seconds each time — this is a
+  physical connection issue (loose SDA/SCL/ground under handling), not a
+  code or address/config problem. Worth securing that connector (or
+  resoldering) before relying on the OLED for anything unattended.
+- LED bar (8-pixel) and buzzer (post volume-fix) had no issues across all
+  ~10 rounds — only the OLED connection was flaky.
+
+### Not done / open
+
+- float32-vs-INT8 mAP drop measurement (Phase 3 exit criterion) — still
+  the single most important number missing to properly interpret today's
+  species-accuracy results.
+- Camera calibration (Aditya) — `scripts/run_wildlife_detection.py` is
+  still running on a placeholder focal length, so all distance/zone
+  numbers from today's test are not meaningful.
+- Camera identity (NoIR vs standard) — still unresolved from the earlier
+  Aug 2 session.
+- OLED connector needs a physical fix (reseat/resolder) before it can be
+  trusted for unattended operation.
+
+---
+
 ## August 12, 2026 — Work Session
 
 **Present:** Deepansh (Mac + Colab)
