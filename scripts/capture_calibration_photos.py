@@ -25,6 +25,11 @@ def main():
     parser.add_argument("--output-dir", type=Path, default=Path.home() / "calibration_photos")
     parser.add_argument("--count", type=int, default=20)
     parser.add_argument("--interval-s", type=float, default=4.0)
+    parser.add_argument(
+        "--awb", default="daylight",
+        help="White balance mode passed to rpicam-still (default 'daylight' "
+        "for outdoor/through-windshield shots; use 'auto' if lighting varies).",
+    )
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -45,7 +50,11 @@ def main():
 
         out_path = args.output_dir / f"photo{i:02d}.jpg"
         result = subprocess.run(
-            ["rpicam-still", "-o", str(out_path), "-n", "--immediate"],
+            [
+                "rpicam-still", "-o", str(out_path), "-n", "--immediate",
+                "--exposure", "sport",
+                "--awb", args.awb,
+            ],
             capture_output=True,
             text=True,
         )
