@@ -50,6 +50,15 @@ class Buzzer:
         self.calls.append(("off",))
         self._set(False)
 
+    def beep_once(self, beep_s: float = 0.08) -> None:
+        """Single short beep -- generic cue (e.g. countdown ticks), not a zone pattern."""
+        self.calls.append(("beep_once", beep_s))
+        if self.simulate:
+            return
+        self._set(True)
+        time.sleep(beep_s)
+        self._set(False)
+
     def two_short(self, beep_s: float = 0.15, gap_s: float = 0.15) -> None:
         """Two short beeps -- zone 2 pattern."""
         self.calls.append(("two_short", beep_s, gap_s))
