@@ -87,4 +87,6 @@ class Buzzer:
         if not self.simulate and self._gpio is not None:
             if self._pwm is not None:
                 self._pwm.stop()
+                self._pwm = None
             self._gpio.cleanup(self.pin)
+            self._gpio = None

@@ -2,6 +2,115 @@
 
 ---
 
+## August 22, 2026 — Work Session (Pi: first real calibration, live pipeline, three shutdown/detection bugs found and fixed)
+
+**Present:** Deepansh (Pi bench, Claude Code running directly on the Pi)
+**Focus:** First real checkerboard calibration (fx no longer a placeholder),
+first `--live-alerts` runs against the newly-calibrated pipeline, and three
+real bugs surfaced and fixed along the way.
+
+### Calibration
+
+- First attempt aimed the camera at the sky by mistake (checkerboard just a
+  sliver at the frame edge) — 0 usable photos. Re-aimed, but the board was
+  shot directly into the sun, which put heavy lens flare across it; only
+  7/20 photos passed corner detection and reprojection error was 2.0px.
+- Repositioned so the sun was behind the camera instead of behind the board.
+  Detection rate improved but reprojection error got *worse* (4.0px) —
+  turned out the printed checkerboard itself was warped/creased (visible
+  ripple in the top edge line, glossy specular streaks), violating the flat-
+  plane assumption calibration math depends on. Re-mounted the printout on a
+  rigid flat backing; error dropped to 1.21px on 8 photos immediately.
+- Chased more samples for a better-conditioned fit (30 photos at 1s
+  intervals, then +15 more at 1.5s): count went up but so did error (1.88px,
+  1.91px on 45 photos) — faster pacing introduced motion blur that outweighed
+  the benefit of more samples. Lesson: for this setup, slower/steadier beats
+  faster/more.
+- Final approach: ran `cv2.calibrateCamera` once across all 20 accepted
+  photos from the 45-photo pool, ranked each by its own per-image
+  reprojection error, kept the best 16, and recalibrated on just those.
+  **Final result: 16 photos, reprojection error 1.34px, fx=2544.77px,
+  fy=2549.39px.** `config/camera_matrix.npy` / `config/dist_coeffs.npy`
+  committed.
+- Still open: the magenta/pink color cast noted back on Aug 2
+  (`docs/open-issues-2026-08-02.md`) showed up strongly again in every
+  calibration photo today, including frames with no direct backlighting —
+  more evidence toward "this sensor behaves like a NoIR variant regardless
+  of what the EXIF model string says," still not physically confirmed.
+
+### Live pipeline runs
+
+- `models/bc_dashcam_yolov8n.hef` checksum reverified against the value
+  recorded in `CLAUDE.md` for the Aug 12 max-optimization compile — matches.
+- First `--live-alerts` run crashed at startup: `OledDisplay.__init__`
+  raised `OSError: [Errno 121] Remote I/O error` even though `i2cdetect`
+  showed the display present at `0x3c` — the same known loose-connector
+  issue as Aug 12, this time failing on the *write* burst rather than the
+  bus scan. Reseating the connector fixed it and it held up cleanly through
+  every subsequent run today, including one sustained ~3.5-minute run under
+  heavy alert load.
+- Ran against an iPad displaying a coyote image for an extended period:
+  "coyote" was correctly the dominant class (652/1559 detections in the
+  first run), confirming the model responds to the intended species. Other
+  species mixed in throughout (moose, deer, cougar, raccoon, elk) — matches
+  the already-documented iPad glare/moiré accuracy issue from Aug 12
+  (`docs/meeting_log.md`, Aug 12 entry), reproduced again today.
+- Pointed at an ordinary indoor desk (no iPad, no wildlife — just a mouse,
+  fingers, keyboard) with `--live-alerts` running: the pipeline fired
+  constant low-confidence detections across every species class. Root cause
+  and fix below (Bug 3).
+
+### Bugs found and fixed
+
+1. **LED/buzzer did not turn off when the process was killed.** `kill <pid>`
+   sends SIGTERM, which Python has no default handler for (unlike SIGINT/
+   Ctrl+C) — the process died immediately, skipping all cleanup, and left
+   the WS2812B LEDs latched at their last color (they hold state until
+   explicitly cleared) and the buzzer's software-PWM pin possibly stuck
+   HIGH. Had to force the buzzer pin off manually mid-session as an
+   immediate fix. Root-caused and fixed properly: `hailo_apps` installs its
+   *own* SIGINT handler (`GStreamerDetectionApp.__init__`) that tears the
+   process down without ever returning control to a plain `try/finally`, so
+   a simple finally block doesn't work either. Fix
+   (`scripts/run_wildlife_detection.py`): a `_shutdown_alerts()` handler now
+   chains in *front of* both SIGINT and SIGTERM, so LED/buzzer/OLED get
+   forced off synchronously as the very first thing on either signal,
+   independent of whatever hailo_apps or Python does afterward. Verified
+   with `kill` (plain SIGTERM) — cleanup now prints and fires correctly.
+2. **Process lingered after shutdown.** Even after the fix above, the OS
+   process stayed alive for a while after cleanup ran and printed complete —
+   non-daemon camera/GStreamer worker threads kept it up, which would have
+   blocked the next run from acquiring the camera/Hailo device. Fixed with a
+   3-second hard-exit safety net (`os._exit`, via a daemon timer thread)
+   that starts right after hardware cleanup. Verified: process is now fully
+   gone well within the window on both SIGINT and SIGTERM.
+3. **Pipeline fired on almost anything indoors** (mouse, fingers, keyboard —
+   no wildlife in frame). Root cause: `hailo_apps`' own NMS score threshold
+   is hardcoded at 0.3 inside the vendored library (`detection_pipeline.py`),
+   not exposed as a CLI flag, and our callback applied no threshold of its
+   own on top of it. Fixed by adding a second, stricter gate in the
+   project's own callback (`--min-confidence`, default 0.6,
+   `DEFAULT_MIN_CONFIDENCE` in `run_wildlife_detection.py`) applied after
+   the Hailo pipeline's NMS has already run.
+- Also made `Buzzer.cleanup()` idempotent (`src/alerts/buzzer.py`) since the
+  new shutdown path can call it more than once (once from a signal handler,
+  once again from the `finally` safety net).
+
+### Not done / open
+
+- float32-vs-INT8 mAP drop measurement (Phase 3 exit criterion) — still the
+  single most important number missing to properly interpret species-
+  accuracy results.
+- Camera identity / magenta color cast (NoIR vs standard) — still
+  unresolved, more evidence gathered today, no physical resolution yet.
+- No real road test yet — everything today was bench/backyard, against an
+  iPad and an indoor desk, not real wildlife or road-perspective footage.
+- OLED connector still needs a permanent physical fix (reseat/resolder) —
+  today's reseat held, but that's been true before (Aug 12) and it
+  eventually dropped again under load that same session.
+
+---
+
 ## August 12, 2026 — Work Session (Pi: live test of the max-optimization `.hef`)
 
 **Present:** Deepansh + Aditya (Pi bench)

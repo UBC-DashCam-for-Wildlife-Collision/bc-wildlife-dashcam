@@ -31,6 +31,8 @@ One known gap -- read before trusting this script's output:
 """
 
 import argparse
+import os
+import signal
 import sys
 import threading
 from pathlib import Path
@@ -68,6 +70,15 @@ DEFAULT_LOG_PATH = REPO_ROOT / "logs" / "detections.jsonl"
 # NOT a real calibration value -- see module docstring point 2.
 FOCAL_LENGTH_PX_PLACEHOLDER = 1000.0
 
+# hailo_apps' own detection_pipeline.py hardcodes its NMS score threshold at
+# 0.3 (not exposed as a CLI flag) -- too permissive on its own, confirmed on
+# the bench 2026-08-22: pointed at an ordinary indoor desk (mouse, fingers,
+# keyboard, no wildlife in frame), it fired constant low-confidence
+# detections across every species class. This is a second, stricter gate
+# applied here in the project's own callback, after the Hailo pipeline's
+# NMS has already run.
+DEFAULT_MIN_CONFIDENCE = 0.6
+
 
 class WildlifeCallbackState(app_callback_class):
     """Per-run state threaded through the GStreamer callback: config tables,
@@ -81,6 +92,7 @@ class WildlifeCallbackState(app_callback_class):
         simulate_alerts: bool,
         num_pixels: int = 1,
         buzzer_volume: float = DEFAULT_BUZZER_VOLUME,
+        min_confidence: float = DEFAULT_MIN_CONFIDENCE,
     ):
         super().__init__()
         self.species_table = load_species_table()
@@ -88,6 +100,7 @@ class WildlifeCallbackState(app_callback_class):
         self.approach_tracker = ApproachTracker()
         self.logger = DetectionLogger(log_path)
         self.focal_length_px = focal_length_px
+        self.min_confidence = min_confidence
         self.alert_controller = AlertController(
             led=LedBar(simulate=simulate_alerts, num_pixels=num_pixels),
             buzzer=Buzzer(simulate=simulate_alerts, volume=buzzer_volume),
@@ -124,13 +137,16 @@ def app_callback(pad, info, user_data: WildlifeCallbackState):
         if species is None:
             continue  # "unlabeled" or anything not in config/species.yaml
 
+        confidence = detection.get_confidence()
+        if confidence < user_data.min_confidence:
+            continue  # below our own stricter gate -- see DEFAULT_MIN_CONFIDENCE
+
         # HailoBBox height() is a 0..1 fraction of the frame; convert to px
         # for the thin-lens formula.
         bbox_height_px = detection.get_bbox().height() * frame_height_px
         if bbox_height_px <= 0:
             continue
 
-        confidence = detection.get_confidence()
         track_id = _track_id(detection)
         distance_m = thin_lens_distance_for_species(bbox_height_px, species, user_data.focal_length_px)
         zone = classify_zone(distance_m, user_data.zone_table)
@@ -171,10 +187,57 @@ def app_callback(pad, info, user_data: WildlifeCallbackState):
     return Gst.PadProbeReturn.OK
 
 
+def _shutdown_alerts(user_data: "WildlifeCallbackState") -> None:
+    """Force LED/buzzer/OLED off. Idempotent -- safe to call more than once
+    (e.g. once from a signal handler, once again from the finally safety net).
+
+    Independent try/except per device: the OLED's I2C connector is known to
+    drop under vibration (docs/meeting_log.md, Aug 12 and Aug 22 entries) --
+    one device raising here must not skip turning off the other two.
+    """
+    print("[wildlife] Shutting down -- turning off LED/buzzer/OLED.", flush=True)
+    try:
+        user_data.alert_controller.led.off()
+    except Exception as exc:
+        print(f"[wildlife] LED shutdown failed: {exc}", flush=True)
+    try:
+        user_data.alert_controller.buzzer.off()
+        user_data.alert_controller.buzzer.cleanup()
+    except Exception as exc:
+        print(f"[wildlife] Buzzer shutdown failed: {exc}", flush=True)
+    try:
+        user_data.alert_controller.oled.clear()
+    except Exception as exc:
+        print(f"[wildlife] OLED shutdown failed: {exc}", flush=True)
+    print("[wildlife] Shutdown complete.", flush=True)
+
+
+def _force_exit_soon(delay_s: float = 3.0) -> None:
+    """Guarantee the process actually dies shortly after a shutdown signal.
+
+    Confirmed on the bench 2026-08-22: even after hardware cleanup runs and
+    control unwinds back out of app.run(), the OS process can linger
+    (non-daemon camera/GStreamer worker threads keep it alive), which blocks
+    the next run from acquiring the camera/Hailo device. Hardware is already
+    safe by the time this timer is started (_shutdown_alerts runs first), so
+    this is just a deadline for the process itself to be gone.
+    """
+    timer = threading.Timer(delay_s, lambda: os._exit(0))
+    timer.daemon = True
+    timer.start()
+
+
 def main():
     my_parser = argparse.ArgumentParser(add_help=False)
     my_parser.add_argument("--focal-length-px", type=float, default=FOCAL_LENGTH_PX_PLACEHOLDER)
     my_parser.add_argument("--log-path", type=Path, default=DEFAULT_LOG_PATH)
+    my_parser.add_argument(
+        "--min-confidence",
+        type=float,
+        default=DEFAULT_MIN_CONFIDENCE,
+        help="Drop detections below this confidence, applied on top of the "
+        f"Hailo pipeline's own (looser, 0.3) NMS threshold. Default {DEFAULT_MIN_CONFIDENCE}.",
+    )
     my_parser.add_argument(
         "--live-alerts",
         action="store_true",
@@ -220,9 +283,48 @@ def main():
         simulate_alerts=not known.live_alerts,
         num_pixels=known.num_pixels,
         buzzer_volume=known.buzzer_volume,
+        min_confidence=known.min_confidence,
     )
+
     app = GStreamerDetectionApp(app_callback, user_data)
-    app.run()
+
+    # A plain try/finally around app.run() does NOT reliably fire: confirmed
+    # on the bench 2026-08-22 that hailo_apps' own SIGINT handler
+    # (registered inside GStreamerDetectionApp.__init__, see
+    # gstreamer_app.py) tears the process down without ever returning
+    # control to our finally block, and SIGTERM (what plain `kill <pid>`
+    # sends) has no handler installed anywhere and kills the process
+    # immediately -- either way the WS2812B LEDs stayed latched at their
+    # last color and the buzzer's software-PWM pin stayed stuck until
+    # forced off manually. Fix: chain our own handler in *front* of
+    # whatever hailo_apps does, so hardware cleanup runs synchronously as
+    # the very first thing on the signal, not something we hope happens on
+    # the way out.
+    existing_sigint_handler = signal.getsignal(signal.SIGINT)
+
+    def _handle_sigint(signum, frame):
+        _shutdown_alerts(user_data)
+        _force_exit_soon()
+        if callable(existing_sigint_handler):
+            existing_sigint_handler(signum, frame)
+        else:
+            sys.exit(0)
+
+    def _handle_sigterm(signum, frame):
+        _shutdown_alerts(user_data)
+        _force_exit_soon()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, _handle_sigint)
+    signal.signal(signal.SIGTERM, _handle_sigterm)
+
+    try:
+        app.run()
+    finally:
+        # Safety net for the normal-exit/exception path; _shutdown_alerts
+        # is idempotent so this is harmless if the signal handlers above
+        # already ran it.
+        _shutdown_alerts(user_data)
 
 
 if __name__ == "__main__":

@@ -40,6 +40,7 @@ def main():
     parser.add_argument("--output-dir", type=Path, default=Path.home() / "calibration_photos")
     parser.add_argument("--count", type=int, default=20)
     parser.add_argument("--interval-s", type=float, default=4.0)
+    parser.add_argument("--start-delay-s", type=float, default=5.0)
     parser.add_argument(
         "--awb", default="daylight",
         help="White balance mode passed to rpicam-still (default 'daylight' "
@@ -59,12 +60,13 @@ def main():
           "between shots -- don't hold it flat-and-centered every time.")
     print("Listen for the buzzer, not the screen -- one short beep per countdown "
           "tick, two short beeps means a photo was just saved.")
-    print("Starting in 5s... (Ctrl+C to stop early)")
-    time.sleep(5)
+    print(f"Starting in {args.start_delay_s:.0f}s... (Ctrl+C to stop early)")
+    time.sleep(args.start_delay_s)
 
+    countdown = list(range(max(1, round(args.interval_s)), 0, -1))
     try:
         for i in range(1, args.count + 1):
-            for remaining in (3, 2, 1):
+            for remaining in countdown:
                 print(f"  {remaining}...", end=" ", flush=True)
                 buzzer.beep_once()
                 time.sleep(1 - 0.08)
@@ -87,7 +89,7 @@ def main():
             buzzer.two_short()
             print(f"  [{i}/{args.count}] saved {out_path} -- reposition now")
             if i < args.count:
-                time.sleep(max(0.0, args.interval_s - 3))
+                time.sleep(max(0.0, args.interval_s - len(countdown)))
     finally:
         buzzer.off()
         buzzer.cleanup()
