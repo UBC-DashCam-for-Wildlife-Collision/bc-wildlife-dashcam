@@ -6,7 +6,7 @@ Detection events are logged with GPS coordinates, timestamp, species label, conf
 
 ## Why This Exists
 
-ICBC reported 12,519 wildlife-vehicle collisions in BC in 2024, a record high with 24 fatal incidents. Stopping distance at 100 km/h on dry asphalt is 71 metres. This system must detect, classify, and alert the driver faster than human reaction time allows for braking inside that envelope.
+ICBC reported 12,519 wildlife-vehicle collisions in BC in 2024, well above the decade average of 11,600 per year. 24 collisions were fatal across 2015-2024. At 100 km/h, a car needs 71-98 metres to stop on dry asphalt depending on reaction time and braking conditions (see [docs/physics-references.md](docs/physics-references.md)). This system has to detect, classify, and alert the driver faster than a human could react and brake inside that distance.
 
 ## Hardware
 
@@ -14,7 +14,7 @@ ICBC reported 12,519 wildlife-vehicle collisions in BC in 2024, a record high wi
 |---|---|
 | Raspberry Pi 5 | Quad-core ARM Cortex-A76 |
 | Raspberry Pi AI Kit | Hailo-8L, 13 TOPS, M.2 HAT+ |
-| Pi Camera Module 3 NoIR | Sony IMX708, CSI-2, IR night vision |
+| Pi camera (imx219 sensor) | CSI-2; NoIR vs. standard variant unconfirmed, see CLAUDE.md |
 | u-blox NEO-M8N GPS | UART, lat/lon/speed/UTC |
 | Active piezo buzzer | GPIO-driven, primary alert |
 | WS2812B RGB LED bar | GPIO 18, visual warning |
@@ -69,8 +69,8 @@ bc-dashcam/
 
 ## Team
 
-- **Deepansh Sabharwal** — Computer Engineering, UBC Okanagan
-- **Aditya Patel** — Electrical Engineering, UBC Okanagan
+- **Deepansh Sabharwal**, Computer Engineering, UBC Okanagan
+- **Aditya Patel**, Electrical Engineering, UBC Okanagan
 
 ## Supervisor
 
