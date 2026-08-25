@@ -276,6 +276,19 @@ def main():
         help="Buzzer PWM duty cycle, 0.0-1.0 (see src/alerts/buzzer.py). "
         f"Default {DEFAULT_BUZZER_VOLUME} -- full volume (1.0) is ear-splitting indoors.",
     )
+    my_parser.add_argument(
+        "--video-sink",
+        type=str,
+        default=None,
+        help="Override hailo_apps' GStreamer preview-window sink (hardcoded to "
+        "'autovideosink' in the vendored library, no CLI flag of its own -- "
+        "see run_wildlife_detection_road.sh). Pass 'fakesink' for any "
+        "headless/unattended run: there's no monitor to preview to anyway, "
+        "and detections are read from the pad-probe callback upstream of the "
+        "display branch regardless of what the sink does. Not a fix for a "
+        "hang -- see run_wildlife_detection_road.sh's comments on the "
+        "2026-08-25 stdout-buffering false alarm this was first mistaken for.",
+    )
     known, remaining = my_parser.parse_known_args()
 
     # hailo_apps' own parser (built inside GStreamerDetectionApp) reads
@@ -313,6 +326,10 @@ def main():
     )
 
     app = GStreamerDetectionApp(app_callback, user_data)
+
+    if known.video_sink is not None:
+        app.video_sink = known.video_sink
+        print(f"[wildlife] Overriding GStreamer preview sink -> {known.video_sink}")
 
     # A plain try/finally around app.run() does NOT reliably fire: confirmed
     # on the bench 2026-08-22 that hailo_apps' own SIGINT handler

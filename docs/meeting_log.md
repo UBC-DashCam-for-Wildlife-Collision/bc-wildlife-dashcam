@@ -126,19 +126,61 @@ whole pipeline mid-drive. This is a software mitigation, not the physical
 fix (reseat/recrimp/resolder) the connector still needs — that's still
 Deepansh/Aditya's hands, not something fixable from here.
 
+### systemd install + a buffering false alarm
+
+Deepansh ran the `sudo` install (couldn't be done from here — no
+interactive TTY for the password over this session or its `!`-prefixed
+passthrough either). Unit came up `enabled` and `active` right away.
+
+First look at the running service was alarming: `logs/wildlife-detection.
+stdout.log` was completely empty and `stderr.log` stopped right after
+`error: XDG_RUNTIME_DIR is invalid or not set in the environment.`, with
+no new detections in over a minute — looked exactly like the pipeline was
+hung before reaching `PLAYING`, plausibly because `autovideosink` (the
+GStreamer preview sink, hardcoded in the vendored `hailo_apps` library,
+no CLI override) can't find a real display to autoplug under a headless
+systemd session with no login/`XDG_RUNTIME_DIR`.
+
+Chased that for a while (added a `--video-sink` override so
+`run_wildlife_detection.py` can swap in `fakesink`) before catching the
+real explanation: **it was stdout buffering, not a hang.** Python
+block-buffers stdout when it isn't a tty, so the log looked frozen even
+while the process was actually fine — confirmed by re-running with
+unbuffered output (`python3 -u` + `PYTHONUNBUFFERED=1`, the latter so it
+also reaches the picamera2 source's own subprocess) and watching it reach
+`picamera_process started` within a few seconds, both under systemd and
+under a manually-stripped headless environment. The `XDG_RUNTIME_DIR`
+error itself turned out to be unrelated and benign — it still printed
+identically even after swapping to `fakesink`, so it isn't coming from
+video-sink autoplugging at all (most likely a libcamera/picamera2 internal
+capability probe that doesn't block anything).
+
+Kept both changes anyway, for the right reasons this time: `fakesink`
+because there's genuinely no monitor in the car and depending on a
+display sink that will never be used is just unnecessary surface area,
+and unbuffered output because being able to watch the service live
+(`journalctl -f` / `tail -f`) instead of only seeing a batch dump at exit
+is real operational value for a road test. Corrected the code comments
+that had overstated the original (wrong) hang diagnosis as "confirmed."
+
+Verified through the actual installed service (not just manual runs):
+`systemctl start` → real-time log output within seconds → `systemctl
+stop` → clean `[wildlife] Shutting down...` / `Shutdown complete.` in the
+log, process gone. Left it `enabled` and running (Deepansh's own choice
+from the initial install, not changed here).
+
 ### Not done / open
 
 - **IR-remote test** for the camera — the one physical check that would
   actually settle the identity question; needs an IR remote in hand.
 - **mAP drop measurement** — script written, not run; needs the next
   Colab session with the SSD dataset mounted.
-- **systemd unit not yet installed** — needs Deepansh to run the two
-  `sudo` commands above, once.
 - **OLED connector's permanent physical fix** (resolder/recrimp) — still
   outstanding; today's work only made the software degrade gracefully
   around it, doesn't fix the underlying intermittent connection.
 - **No real road test yet** — everything through today has been bench/
-  backyard testing.
+  backyard testing, now running unattended via systemd but still
+  stationary.
 
 ---
 
