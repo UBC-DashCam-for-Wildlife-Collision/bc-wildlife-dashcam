@@ -2,6 +2,29 @@
 
 ---
 
+## August 25, 2026 (cont'd) — Cold-boot verification, ahead of road test + Dr. Thomas meeting
+
+Rebooted the Pi (`sudo reboot`, real power cycle, not a service restart) to
+close the one gap left after installing `wildlife-detection.service`: every
+verification up to that point had been `systemctl start/stop` against an
+already-booted Pi, not a genuine cold boot. **Passed:** `wildlife-detection.
+service` came up `active (running)` ~45s after boot with no manual
+intervention, stdout showed the calibrated focal length auto-load
+(2547.08px) and `picamera_process started` within seconds, matching every
+already-running-Pi test from earlier today. This is the last piece needed
+for "power on in the car, it just works" to actually be true on the
+software/boot side.
+
+**Still not confirmed from software alone:** whether the 12V→5V car power
+regulator is physically wired to the Pi yet (last documented status,
+CLAUDE.md: "with Aditya," not yet connected) — that's the actual
+prerequisite for plugging in in the car. GPS still not acquired. No animal
+(or stand-in image) had been held up to the camera yet during this session
+to confirm a real end-to-end detection-to-alert firing, separate from the
+pipeline simply running.
+
+---
+
 ## August 25, 2026 — Work Session (Pi: camera-identity diagnostic, road-test systemd deployment, OLED resilience, buzzer shutdown race)
 
 **Present:** Deepansh (Pi bench, Claude Code running directly on the Pi)
