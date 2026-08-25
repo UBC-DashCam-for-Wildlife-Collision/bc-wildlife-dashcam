@@ -1,0 +1,21 @@
+[Unit]
+Description=BC Wildlife Dashcam - live detection pipeline
+After=multi-user.target
+
+[Service]
+Type=simple
+User=deepansh
+WorkingDirectory=/home/deepansh/bc-wildlife-dashcam
+ExecStart=/home/deepansh/bc-wildlife-dashcam/scripts/run_wildlife_detection_road.sh
+Restart=on-failure
+RestartSec=3
+# SIGTERM is handled in-process (run_wildlife_detection.py:_handle_sigterm)
+# to turn off LED/buzzer/OLED before exit -- give it real time to run that
+# and the 3s _force_exit_soon safety net, rather than systemd's 90s default
+# escalating to SIGKILL before cleanup finishes.
+TimeoutStopSec=10
+StandardOutput=append:/home/deepansh/bc-wildlife-dashcam/logs/wildlife-detection.stdout.log
+StandardError=append:/home/deepansh/bc-wildlife-dashcam/logs/wildlife-detection.stderr.log
+
+[Install]
+WantedBy=multi-user.target

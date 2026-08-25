@@ -14,7 +14,19 @@ crashes over cosmetics.
 `simulate=True` records calls instead of touching hardware -- see
 led_bar.py docstring for why. See scripts/test_oled.py for the standalone
 hardware smoke test.
+
+The I2C connector is known to drop intermittently under vibration (bench
+tests Aug 12 and Aug 22 2026: `OSError: [Errno 121] Remote I/O error` even
+though `i2cdetect` shows the device present -- a full write burst fails
+even when a plain bus scan succeeds). The fix that has worked so far has
+been a physical reseat, but a road test can't stop to reseat a connector
+mid-drive, so every I2C operation here retries with a short backoff and
+degrades to a no-op on exhaustion rather than crashing the whole detection
+pipeline over a non-critical display (LED + buzzer remain the primary
+alert; OLED is a convenience readout).
 """
+
+import time
 
 WIDTH = 128
 HEIGHT = 64
@@ -22,6 +34,9 @@ HEIGHT = 64
 FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 SPECIES_FONT_SIZE = 18
 DISTANCE_FONT_SIZE = 28
+
+I2C_RETRY_ATTEMPTS = 3
+I2C_RETRY_BACKOFF_S = 0.15
 
 
 class OledDisplay:
@@ -33,15 +48,15 @@ class OledDisplay:
         self._image = None
         self._species_font = None
         self._distance_font = None
+        self._i2c_dead = False
 
         if not simulate:
             import board
             import busio
-            from adafruit_ssd1306 import SSD1306_I2C
             from PIL import Image, ImageDraw, ImageFont
 
-            i2c = busio.I2C(board.SCL, board.SDA)
-            self._display = SSD1306_I2C(WIDTH, HEIGHT, i2c)
+            self._SSD1306_I2C = __import__("adafruit_ssd1306").SSD1306_I2C
+            self._i2c = busio.I2C(board.SCL, board.SDA)
             self._image = Image.new("1", (WIDTH, HEIGHT))
             self._draw = ImageDraw.Draw(self._image)
             try:
@@ -50,13 +65,49 @@ class OledDisplay:
             except OSError:
                 self._species_font = ImageFont.load_default()
                 self._distance_font = ImageFont.load_default()
+            self._connect()
+
+    def _connect(self) -> bool:
+        """(Re)initialize the SSD1306 over I2C. Returns success."""
+        try:
+            self._display = self._SSD1306_I2C(WIDTH, HEIGHT, self._i2c)
+            self._i2c_dead = False
+            return True
+        except OSError as exc:
+            print(f"[oled] connect failed: {exc}")
+            self._display = None
+            return False
+
+    def _with_retry(self, op) -> bool:
+        """Run `op()` against self._display, retrying through reconnects on
+        OSError. Returns whether it eventually succeeded; never raises.
+        """
+        if self.simulate:
+            return True
+        for attempt in range(I2C_RETRY_ATTEMPTS):
+            if self._display is None and not self._connect():
+                time.sleep(I2C_RETRY_BACKOFF_S)
+                continue
+            try:
+                op()
+                self._i2c_dead = False
+                return True
+            except OSError as exc:
+                print(f"[oled] I2C op failed (attempt {attempt + 1}/{I2C_RETRY_ATTEMPTS}): {exc}")
+                self._display = None  # force a reconnect next attempt
+                time.sleep(I2C_RETRY_BACKOFF_S)
+        self._i2c_dead = True
+        print("[oled] I2C unreachable -- skipping this update, LED/buzzer alerts unaffected.")
+        return False
 
     def clear(self) -> None:
         self.calls.append(("clear",))
-        if self.simulate:
-            return
-        self._display.fill(0)
-        self._display.show()
+
+        def _do():
+            self._display.fill(0)
+            self._display.show()
+
+        self._with_retry(_do)
 
     def _centered_text(self, text: str, y: int, font) -> None:
         left, top, right, bottom = self._draw.textbbox((0, 0), text, font=font)
@@ -71,5 +122,9 @@ class OledDisplay:
         self._centered_text(species.upper(), 2, self._species_font)
         self._draw.line((10, 24, WIDTH - 10, 24), fill=255)
         self._centered_text(f"{distance_m:.0f} m", 32, self._distance_font)
-        self._display.image(self._image)
-        self._display.show()
+
+        def _do():
+            self._display.image(self._image)
+            self._display.show()
+
+        self._with_retry(_do)

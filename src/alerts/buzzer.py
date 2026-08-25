@@ -14,8 +14,17 @@ docstring for why. Pin number is a placeholder; confirm against the actual
 wiring once Aditya/Deepansh connect it (not yet documented in
 interface_contract.md as of Jul 5 2026 -- only the LED pin (GPIO 18) and GPS
 UART pin (GPIO 15) are nailed down there).
+
+Patterns run on a background thread (src/alerts/controller.py) so a
+pattern can still be mid-loop (calling _set() repeatedly) when a shutdown
+signal calls cleanup() from the main thread -- confirmed on the bench
+2026-08-22 as an AttributeError crash (cleanup() had nulled self._pwm
+while continuous_rapid() was still running). A lock plus a None-check in
+_set() makes that race safe: whichever wins, the other either finishes
+first or finds the pin already torn down and no-ops instead of crashing.
 """
 
+import threading
 import time
 
 BUZZER_PIN = 17  # placeholder -- confirm against actual wiring before hardware test
@@ -31,6 +40,7 @@ class Buzzer:
         self.calls: list[tuple] = []
         self._gpio = None
         self._pwm = None
+        self._lock = threading.Lock()
 
         if not simulate:
             import RPi.GPIO as GPIO
@@ -44,7 +54,10 @@ class Buzzer:
     def _set(self, on: bool) -> None:
         if self.simulate:
             return
-        self._pwm.ChangeDutyCycle(self.volume * 100 if on else 0)
+        with self._lock:
+            if self._pwm is None:
+                return  # already cleaned up (e.g. shutdown mid-pattern) -- pin is safely torn down
+            self._pwm.ChangeDutyCycle(self.volume * 100 if on else 0)
 
     def off(self) -> None:
         self.calls.append(("off",))
@@ -84,7 +97,11 @@ class Buzzer:
             elapsed += beep_s + gap_s
 
     def cleanup(self) -> None:
-        if not self.simulate and self._gpio is not None:
+        if self.simulate:
+            return
+        with self._lock:
+            if self._gpio is None:
+                return
             if self._pwm is not None:
                 self._pwm.stop()
                 self._pwm = None

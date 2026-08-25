@@ -2,6 +2,146 @@
 
 ---
 
+## August 25, 2026 — Work Session (Pi: camera-identity diagnostic, road-test systemd deployment, OLED resilience, buzzer shutdown race)
+
+**Present:** Deepansh (Pi bench, Claude Code running directly on the Pi)
+**Focus:** Work through the open items from the Aug 22 session (camera
+identity, mAP-drop measurement, OLED permanent fix, road-test readiness) —
+everything doable from the Pi without dataset access or physical soldering.
+
+### Camera identity / magenta cast — new evidence, still not 100% closed
+
+Wrote `scripts/diagnose_camera_ir.py`. Two software-side checks:
+
+- **Tuning file selection.** The Pi's imaging stack ships two IPA tuning
+  files for this sensor (`/usr/share/libcamera/ipa/rpi/pisp/imx219.json`
+  and `imx219_noir.json`), and libcamera auto-selects one based on the
+  connected module's identity. It picked `imx219.json` (the has-IR-filter
+  tuning), not the NoIR one.
+- **Raw sensor channel response.** Captured with white balance forced to
+  unity gains (`--awbgains 1.0,1.0`, i.e. before any auto-correction):
+  R=74.1, G=115.0, B=32.7 (R/G=0.64, B/G=0.29) — green-dominant, which is
+  what an IR-cut-filtered sensor should show (near-IR bleed into R/B is
+  blocked). A true NoIR module would show elevated R and/or B relative to
+  G, the opposite pattern.
+
+Both signals now point the same way: **standard imx219, not NoIR.** This
+is software-side evidence, not a physical guarantee, and doesn't explain
+the magenta cast seen once under indoor lighting on Aug 2 — that could
+still be an unrelated white-balance/lighting artifact rather than a
+missing IR-cut filter. The genuinely definitive test (IR remote + button
+press, invisible flash visible on a NoIR sensor) still hasn't been done —
+needs an IR remote in hand, not something resolvable from here. Documented
+in the script's own docstring so it's not lost again.
+
+### mAP drop measurement (float32 vs INT8) — scaffolded, not run
+
+This is Phase 3's last exit criterion (flagged as "not done" in the Aug 12
+entry below) but genuinely can't be executed from the Pi: it needs the
+held-out test split (SSD only, per CLAUDE.md section 7 — the raw dataset
+never goes on the Pi) and `hailo_sdk_client` (Colab's `hailo_env` only —
+the Pi has the lighter `hailo_platform` runtime for running an
+already-compiled `.hef`, not the Dataflow Compiler).
+
+Split the work into a part that *could* be built and verified here, and a
+part that has to wait for the next Colab session:
+
+- `scripts/map_eval/metrics.py` — a small, framework-agnostic COCO-style
+  mAP implementation (IoU matching, 101-point interpolated AP, mAP50 and
+  mAP50-95) with no dependency on the dataset or Hailo SDK. Unit-tested
+  now: `tests/test_map_metrics.py`, 9 cases (perfect detections → AP 1.0,
+  no detections/no ground truth → AP 0.0 not a crash, a deliberately
+  offset box that clears IoU 0.5 but fails the tighter mAP50-95
+  thresholds — confirms the two metrics actually diverge as expected).
+  All passing (47/47 across the full suite, up from 38).
+- `scripts/eval_map_int8_colab.py` — driver script for the *next* Colab
+  session: loads the already-quantized `.har` from Aug 12, runs
+  `ClientRunner.infer()` in both `SDK_NATIVE` (float32) and
+  `SDK_QUANTIZED` (INT8) contexts against the test split, feeds both
+  through `metrics.compute_map()`, prints the drop. **Not run
+  end-to-end** — written blind, without dataset or `hailo_sdk_client`
+  access here, so its docstring says explicitly to sanity-check the
+  float32 number against the known ultralytics figures (mAP50 0.823,
+  mAP50-95 0.638, CLAUDE.md section 8) before trusting the INT8 side; if
+  those don't roughly match, the eval harness itself (box convention,
+  label parsing, class mapping) is wrong, not the model.
+
+### Road-test deployment — systemd service, verified working
+
+Wrote `scripts/wildlife-detection.service` +
+`scripts/run_wildlife_detection_road.sh` +
+`docs/road-test-deployment.md`, so a road test doesn't depend on an SSH
+session staying attached: auto-restart on crash, clean LED/buzzer/OLED
+shutdown on stop (reuses the signal-handling fix from Aug 22), full 8-LED
+bar + raised buzzer volume (0.6) by default, tunable via
+`systemctl edit` environment overrides.
+
+Installing the unit needs `sudo`, which needs an interactive password —
+couldn't do that step here. **Still needs Deepansh to run, once:**
+
+```
+sudo cp scripts/wildlife-detection.service /etc/systemd/system/
+sudo systemctl daemon-reload
+```
+
+(full details in `docs/road-test-deployment.md`). Verified the launcher
+script itself directly (not yet through the installed unit): started
+clean, `SIGTERM` produced a clean shutdown log, process fully gone
+afterward.
+
+**Also added:** `run_wildlife_detection.py` now auto-loads the real
+calibrated focal length from `config/camera_matrix.npy` (the Aug 22
+calibration) if `--focal-length-px` isn't passed explicitly, instead of
+silently needing it re-typed on every run. Confirmed live: "Using
+calibrated focal length from config/camera_matrix.npy: 2547.08px".
+
+### Bug found and fixed: buzzer shutdown race
+
+While verifying the road-test launcher's `SIGTERM` path, hit a real crash:
+`AttributeError: 'NoneType' object has no attribute 'ChangeDutyCycle'` in
+a background alert thread. Root cause: `_shutdown_alerts()` calls
+`buzzer.cleanup()`, which nulls `self._pwm`/`self._gpio` — but if a
+`continuous_rapid()` pattern (fired on its own daemon thread by
+`AlertController.trigger()`) is still mid-loop calling `_set()` at that
+exact moment, it dereferences the now-None PWM object. A shutdown landing
+mid-alert is a completely realistic scenario in the car (kill the process
+while an animal warning is actively firing).
+
+Fixed in `src/alerts/buzzer.py`: added a `threading.Lock`, and `_set()`/
+`cleanup()` both take it and no-op instead of crashing if the pin is
+already torn down (safe either way — a no-op means the pin is already
+safely deinitialized). Verified two ways: (1) re-ran the same
+launch-then-SIGTERM test that first surfaced it — clean shutdown, no
+traceback; (2) wrote a deterministic 20-trial stress test with a fake
+GPIO backend that reliably reproduced the race pre-fix and confirmed zero
+crashes post-fix.
+
+Also made the OLED driver (`src/alerts/oled_display.py`) resilient to its
+own known issue (I2C connector drop under vibration, Aug 12 and Aug 22
+entries) rather than just documenting it: every I2C call now retries with
+a short backoff and reconnect attempt, degrading to a skipped update
+(logged, not crashed) if the bus stays unreachable — LED and buzzer stay
+the primary alert either way, so a flaky OLED can no longer take down the
+whole pipeline mid-drive. This is a software mitigation, not the physical
+fix (reseat/recrimp/resolder) the connector still needs — that's still
+Deepansh/Aditya's hands, not something fixable from here.
+
+### Not done / open
+
+- **IR-remote test** for the camera — the one physical check that would
+  actually settle the identity question; needs an IR remote in hand.
+- **mAP drop measurement** — script written, not run; needs the next
+  Colab session with the SSD dataset mounted.
+- **systemd unit not yet installed** — needs Deepansh to run the two
+  `sudo` commands above, once.
+- **OLED connector's permanent physical fix** (resolder/recrimp) — still
+  outstanding; today's work only made the software degrade gracefully
+  around it, doesn't fix the underlying intermittent connection.
+- **No real road test yet** — everything through today has been bench/
+  backyard testing.
+
+---
+
 ## August 22, 2026 — Work Session (Pi: first real calibration, live pipeline, three shutdown/detection bugs found and fixed)
 
 **Present:** Deepansh (Pi bench, Claude Code running directly on the Pi)

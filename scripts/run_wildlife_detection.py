@@ -21,13 +21,12 @@ moose/raccoon, matching scripts/build-yolo-dataset.py's alphabetical
 0-indexed class list. hailo_labels.json has been corrected to drop the
 "unlabeled" entry it previously had at index 0.
 
-One known gap -- read before trusting this script's output:
-
-1. FOCAL_LENGTH_PX_PLACEHOLDER below is NOT a real calibration value --
-   Aditya's checkerboard calibration (camera_matrix.npy, per
-   docs/interface_contract.md) hasn't happened yet. Distances/zones out of
-   this script aren't trustworthy until that lands; override with
-   --focal-length-px once it does.
+Focal length: if config/camera_matrix.npy exists (real checkerboard
+calibration -- see docs/meeting_log.md, Aug 22 2026 entry, 16 hand-picked
+photos, 1.34px reprojection error), its fx/fy are loaded automatically and
+used unless --focal-length-px overrides them. Only falls back to
+FOCAL_LENGTH_PX_PLACEHOLDER (untrustworthy distances/zones -- see the
+warning this prints) if that file is missing.
 """
 
 import argparse
@@ -66,9 +65,20 @@ from src.zones import classify_zone  # noqa: E402
 DEFAULT_HEF_PATH = REPO_ROOT / "models" / "bc_dashcam_yolov8n.hef"
 DEFAULT_LABELS_JSON = REPO_ROOT / "config" / "hailo_labels.json"
 DEFAULT_LOG_PATH = REPO_ROOT / "logs" / "detections.jsonl"
+CAMERA_MATRIX_PATH = REPO_ROOT / "config" / "camera_matrix.npy"
 
-# NOT a real calibration value -- see module docstring point 2.
+# NOT a real calibration value -- only used if CAMERA_MATRIX_PATH is missing.
 FOCAL_LENGTH_PX_PLACEHOLDER = 1000.0
+
+
+def _load_calibrated_focal_length_px() -> float | None:
+    """Average of fx/fy from config/camera_matrix.npy, or None if absent."""
+    if not CAMERA_MATRIX_PATH.exists():
+        return None
+    import numpy as np
+
+    camera_matrix = np.load(CAMERA_MATRIX_PATH)
+    return float((camera_matrix[0, 0] + camera_matrix[1, 1]) / 2)
 
 # hailo_apps' own detection_pipeline.py hardcodes its NMS score threshold at
 # 0.3 (not exposed as a CLI flag) -- too permissive on its own, confirmed on
@@ -229,7 +239,14 @@ def _force_exit_soon(delay_s: float = 3.0) -> None:
 
 def main():
     my_parser = argparse.ArgumentParser(add_help=False)
-    my_parser.add_argument("--focal-length-px", type=float, default=FOCAL_LENGTH_PX_PLACEHOLDER)
+    my_parser.add_argument(
+        "--focal-length-px",
+        type=float,
+        default=None,
+        help="Override the focal length used for distance estimation. Default: "
+        f"auto-load fx/fy from {CAMERA_MATRIX_PATH.relative_to(REPO_ROOT)} if present, "
+        f"else fall back to the untrustworthy {FOCAL_LENGTH_PX_PLACEHOLDER}px placeholder.",
+    )
     my_parser.add_argument("--log-path", type=Path, default=DEFAULT_LOG_PATH)
     my_parser.add_argument(
         "--min-confidence",
@@ -270,12 +287,21 @@ def main():
         remaining += ["--labels-json", str(DEFAULT_LABELS_JSON)]
     sys.argv = [sys.argv[0], *remaining]
 
-    if known.focal_length_px == FOCAL_LENGTH_PX_PLACEHOLDER:
-        print(
-            "[wildlife] WARNING: using the placeholder focal length "
-            f"({FOCAL_LENGTH_PX_PLACEHOLDER}px), not a real calibration value. "
-            "Distances/zones below are not trustworthy yet -- see module docstring."
-        )
+    if known.focal_length_px is None:
+        calibrated = _load_calibrated_focal_length_px()
+        if calibrated is not None:
+            known.focal_length_px = calibrated
+            print(
+                f"[wildlife] Using calibrated focal length from "
+                f"{CAMERA_MATRIX_PATH.relative_to(REPO_ROOT)}: {calibrated:.2f}px"
+            )
+        else:
+            known.focal_length_px = FOCAL_LENGTH_PX_PLACEHOLDER
+            print(
+                "[wildlife] WARNING: using the placeholder focal length "
+                f"({FOCAL_LENGTH_PX_PLACEHOLDER}px), not a real calibration value. "
+                "Distances/zones below are not trustworthy yet -- see module docstring."
+            )
 
     user_data = WildlifeCallbackState(
         focal_length_px=known.focal_length_px,
